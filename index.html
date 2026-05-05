@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI News Verifier — GenLayer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #08080e;
+      --surface: #0f0f18;
+      --surface2: #161622;
+      --border: rgba(255,255,255,0.06);
+      --border2: rgba(255,255,255,0.1);
+      --text: #dde0f0;
+      --muted: #5a5a78;
+      --accent: #7c5cbf;
+      --accent2: #a589f7;
+      --green: #22d3a0;
+      --red: #f0425a;
+      --yellow: #f5b800;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background glow blobs */
+    body::before {
+      content: '';
+      position: fixed; top: -200px; right: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(124,92,191,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed; bottom: -200px; left: -200px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(34,211,160,0.06) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 780px; margin: 0 auto; padding: 0 20px 60px; }
+
+    /* ── HEADER ── */
+    header { padding: 52px 0 44px; text-align: center; }
+
+    .network-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(124,92,191,0.12); border: 1px solid rgba(124,92,191,0.25);
+      border-radius: 100px; padding: 7px 16px;
+      font-family: var(--mono); font-size: 10px; color: var(--accent2);
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 28px;
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    h1 {
+      font-family: var(--sans); font-weight: 800;
+      font-size: clamp(32px, 7vw, 52px);
+      line-height: 1.05; letter-spacing: -0.04em; color: #fff; margin-bottom: 10px;
+    }
+    h1 em {
+      font-style: normal;
+      background: linear-gradient(130deg, #a589f7 0%, #22d3a0 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tagline {
+      font-family: var(--mono); font-size: 12px; color: var(--muted);
+      letter-spacing: 0.05em; margin-top: 6px;
+    }
+
+    /* ── FLOW STEPS ── */
+    .steps {
+      display: flex; justify-content: center; gap: 0; margin: 28px 0 40px;
+      flex-wrap: wrap;
+    }
+    .step {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .step-num {
+      font-size: 9px; color: var(--accent2); opacity: 0.7;
+    }
+    .step-arrow {
+      margin: 0 10px; color: var(--border2); font-size: 14px;
+    }
+
+    /* ── STATS ROW ── */
+    .stats {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      margin-bottom: 20px;
+    }
+    .stat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 12px; text-align: center;
+    }
+    .stat-n {
+      font-family: var(--sans); font-weight: 800;
+      font-size: 30px; line-height: 1; margin-bottom: 4px;
+    }
+    .stat-l { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; margin-bottom: 16px;
+    }
+    .card-label {
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--accent2); margin-bottom: 22px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .card-label::after { content:''; flex:1; height:1px; background: var(--border); }
+
+    /* ── FORM ── */
+    .field { margin-bottom: 16px; }
+    label {
+      display: block; font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+      margin-bottom: 8px;
+    }
+    input, textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 13px 15px;
+      font-family: var(--mono); font-size: 12px; color: var(--text);
+      outline: none; resize: none; transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
+    }
+    input:focus, textarea:focus {
+      border-color: rgba(124,92,191,.5);
+      box-shadow: 0 0 0 3px rgba(124,92,191,.1);
+    }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+
+    /* Example chips */
+    .chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; }
+    .chip {
+      padding: 5px 11px; border-radius: 100px; font-family: var(--mono); font-size: 10px;
+      background: var(--surface2); border: 1px solid var(--border2); color: var(--muted);
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent2); background: rgba(124,92,191,.1); }
+    .chips-label { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .1em; }
+
+    /* ── BUTTON ── */
+    .btn {
+      width: 100%; padding: 16px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #6b46c1, #9b79f7);
+      color: #fff; font-family: var(--sans); font-weight: 700; font-size: 15px;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: transform .15s, box-shadow .15s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px rgba(107,70,193,.4);
+    }
+    .btn:active:not(:disabled) { transform: translateY(0); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn.loading {
+      pointer-events: none;
+    }
+    .btn.loading::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+      animation: sweep 1.4s ease infinite;
+    }
+    @keyframes sweep { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+    /* ── VALIDATORS ANIMATION ── */
+    .validators-section {
+      display: none;
+      margin-bottom: 16px;
+    }
+    .validators-section.visible { display: block; }
+    .validator-list { display: flex; flex-direction: column; gap: 8px; }
+    .validator-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      animation: fadeIn .3s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:none} }
+    .v-icon { font-size: 14px; }
+    .v-label { flex: 1; }
+    .v-status {
+      font-size: 10px; letter-spacing: .05em;
+      padding: 3px 8px; border-radius: 100px; border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .v-status.checking { color: var(--yellow); border-color: rgba(245,184,0,.3); }
+    .v-status.done { color: var(--green); border-color: rgba(34,211,160,.3); }
+
+    /* ── VERDICT ── */
+    .verdict-card {
+      border-radius: 16px; padding: 26px; margin-bottom: 16px;
+      animation: slideUp .4s ease;
+      display: none;
+    }
+    .verdict-card.visible { display: block; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+    .verdict-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+    .verdict-icon { font-size: 36px; flex-shrink: 0; line-height: 1; }
+    .verdict-right { flex: 1; }
+    .verdict-title { font-family: var(--sans); font-weight: 800; font-size: 22px; letter-spacing: -.02em; }
+    .verdict-conf {
+      font-family: var(--mono); font-size: 9px; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted); margin-top: 3px;
+    }
+    .verdict-reason {
+      font-family: var(--mono); font-size: 12px; line-height: 1.7;
+      color: var(--text); padding: 14px 16px; border-radius: 10px;
+      background: rgba(0,0,0,.3); border-left: 3px solid; margin-bottom: 12px;
+    }
+    .verdict-chain {
+      font-family: var(--mono); font-size: 9px; color: var(--muted);
+      letter-spacing: .06em;
+    }
+
+    /* ── HISTORY ── */
+    .history-empty {
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      text-align: center; padding: 20px 0;
+    }
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .history-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 14px 16px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 12px; cursor: default; transition: border-color .2s;
+    }
+    .history-item:hover { border-color: rgba(124,92,191,.3); }
+    .h-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .h-headline { font-family: var(--mono); font-size: 12px; color: var(--text); line-height: 1.4; }
+    .h-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    /* ── HOW IT WORKS ── */
+    .how-list { display: flex; flex-direction: column; gap: 0; }
+    .how-item {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .how-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .how-num {
+      font-family: var(--mono); font-size: 10px; color: var(--accent2);
+      min-width: 22px; margin-top: 1px;
+    }
+    .how-text { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
+    .how-text strong { color: var(--text); }
+
+    /* ── CONFIG BOX ── */
+    .config-box {
+      background: rgba(124,92,191,.07); border: 1px solid rgba(124,92,191,.2);
+      border-radius: 10px; padding: 14px 16px;
+      font-family: var(--mono); font-size: 11px; color: var(--accent2);
+      line-height: 1.8; margin-bottom: 16px;
+    }
+    .config-box code {
+      background: rgba(0,0,0,.3); padding: 1px 6px; border-radius: 4px; font-size: 10px;
+    }
+
+    /* ── ERROR ── */
+    .error-box {
+      background: rgba(240,66,90,.08); border: 1px solid rgba(240,66,90,.25);
+      border-radius: 10px; padding: 12px 15px; margin-top: 12px;
+      font-family: var(--mono); font-size: 11px; color: #f47085;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 36px 0 0;
+      font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .05em;
+    }
+    footer a { color: var(--accent2); text-decoration: none; }
+
+    @media (max-width: 500px) {
+      .steps { gap: 4px; }
+      .step-arrow { margin: 0 5px; font-size: 10px; }
+      h1 { font-size: 30px; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="network-pill">
+      <span class="live-dot"></span>
+      GenLayer Bradbury Testnet · Live
+    </div>
+    <h1>AI News <em>Verifier</em></h1>
+    <p class="tagline">// Intelligent Contract · Web Fetch · On-Chain Verdict</p>
+
+    <div class="steps">
+      <span class="step"><span class="step-num">01</span>Submit</span>
+      <span class="step-arrow">→</span>
+      <span class="step"><span class="step-num">02</span>Validators Fetch</span>
+      <span class="step-arrow">→</span>
+      <span class="step"><span class="step-num">03</span>AI Consensus</span>
+      <span class="step-arrow">→</span>
+      <span class="step"><span class="step-num">04</span>On-Chain</span>
+    </div>
+  </header>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-n" style="color: var(--green)" id="count-real">0</div>
+      <div class="stat-l">Verified Real</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" style="color: var(--red)" id="count-fake">0</div>
+      <div class="stat-l">Detected Fake</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n" style="color: var(--yellow)" id="count-mis">0</div>
+      <div class="stat-l">Misleading</div>
+    </div>
+  </div>
+
+  <!-- CONFIG NOTE (shown only if no contract address) -->
+  <div class="config-box" id="demo-notice">
+    ⚡ <strong>DEMO MODE</strong> — Deploy <code>news_verifier.py</code> in GenLayer Studio, then paste your contract address below to go live.
+  </div>
+
+  <!-- MAIN FORM -->
+  <div class="card">
+    <div class="card-label">Verify a Headline</div>
+
+    <div class="field">
+      <label>Contract Address (optional — leave blank for demo)</label>
+      <input id="contract-address" type="text" placeholder="0x... paste your deployed contract address" />
+    </div>
+
+    <div class="field">
+      <label>Your Wallet Address</label>
+      <input id="wallet-address" type="text" placeholder="0x... (required for live mode)" />
+    </div>
+
+    <div class="field">
+      <label>News Headline to Verify</label>
+      <textarea id="headline" rows="3" placeholder="Paste the news headline you want to fact-check…"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Source URL</label>
+      <input id="source-url" type="url" placeholder="https://bbc.com/news/..." />
+    </div>
+
+    <div>
+      <div class="chips-label">// try an example</div>
+      <div class="chips">
+        <span class="chip" onclick="setExample('NASA confirms water ice on Moon surface', 'https://www.nasa.gov/news-release/')">🌙 Moon Water</span>
+        <span class="chip" onclick="setExample('Scientists cure cancer with AI breakthrough', 'https://www.bbc.com/news/health')">🔬 Cancer Cure</span>
+        <span class="chip" onclick="setExample('Bitcoin hits all-time high price record', 'https://coindesk.com')">₿ BTC ATH</span>
+        <span class="chip" onclick="setExample('Earth is flat, new study confirms', 'https://www.nature.com')">🌍 Flat Earth</span>
+      </div>
+    </div>
+
+    <button class="btn" id="verify-btn" onclick="handleVerify()">
+      🔍&nbsp; Verify with AI Consensus
+    </button>
+    <div class="error-box" id="error-box" style="display:none"></div>
+  </div>
+
+  <!-- VALIDATOR ANIMATION -->
+  <div class="card validators-section" id="validators-section">
+    <div class="card-label">Validators Processing</div>
+    <div class="validator-list" id="validator-list"></div>
+  </div>
+
+  <!-- VERDICT CARD -->
+  <div class="verdict-card" id="verdict-card">
+    <div class="verdict-top">
+      <div class="verdict-icon" id="v-icon"></div>
+      <div class="verdict-right">
+        <div class="verdict-title" id="v-title"></div>
+        <div class="verdict-conf" id="v-conf"></div>
+      </div>
+    </div>
+    <div class="verdict-reason" id="v-reason"></div>
+    <div class="verdict-chain">✓ Verdict stored on-chain · GenLayer Bradbury Testnet · Optimistic Democracy Consensus</div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="card">
+    <div class="card-label">On-Chain Verification History</div>
+    <div id="history-container">
+      <div class="history-empty">No verifications yet. Submit a headline above.</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="card">
+    <div class="card-label">How It Works</div>
+    <div class="how-list">
+      <div class="how-item">
+        <span class="how-num">01</span>
+        <span class="how-text">You submit a <strong>news headline + source URL</strong> to the Intelligent Contract on GenLayer Bradbury Testnet</span>
+      </div>
+      <div class="how-item">
+        <span class="how-num">02</span>
+        <span class="how-text">Multiple <strong>independent AI validators</strong> each independently fetch the live source URL using <code>gl.get_webpage()</code></span>
+      </div>
+      <div class="how-item">
+        <span class="how-num">03</span>
+        <span class="how-text">Each validator's <strong>LLM analyses</strong> the page content against the headline, deciding: REAL / FAKE / MISLEADING</span>
+      </div>
+      <div class="how-item">
+        <span class="how-num">04</span>
+        <span class="how-text"><strong>Optimistic Democracy consensus</strong> — validators must agree on the verdict via the Equivalence Principle</span>
+      </div>
+      <div class="how-item">
+        <span class="how-num">05</span>
+        <span class="how-text">The final verdict is <strong>stored permanently on-chain</strong> — immutable, verifiable, trustless</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    Built on <a href="https://genlayer.com" target="_blank">GenLayer</a> Bradbury Testnet &nbsp;·&nbsp;
+    <a href="https://studio.genlayer.com" target="_blank">Studio</a> &nbsp;·&nbsp;
+    <a href="https://portal.genlayer.foundation" target="_blank">Builder Portal</a>
+  </footer>
+
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// After deploying your contract in GenLayer Studio, paste your address here:
+const DEFAULT_CONTRACT = '';
+const STUDIO_RPC = 'https://studio.genlayer.com/api';
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let history = JSON.parse(localStorage.getItem('nv-history') || '[]');
+let stats = { REAL: 0, FAKE: 0, MISLEADING: 0 };
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+function init() {
+  recalcStats();
+  renderHistory();
+  updateStats();
+
+  const saved = localStorage.getItem('nv-contract');
+  if (saved) {
+    document.getElementById('contract-address').value = saved;
+    document.getElementById('demo-notice').style.display = 'none';
+  }
+
+  document.getElementById('contract-address').addEventListener('input', function() {
+    const v = this.value.trim();
+    localStorage.setItem('nv-contract', v);
+    document.getElementById('demo-notice').style.display = v ? 'none' : 'block';
+  });
+}
+
+function recalcStats() {
+  stats = { REAL: 0, FAKE: 0, MISLEADING: 0 };
+  history.forEach(h => { if (stats[h.verdict] !== undefined) stats[h.verdict]++; });
+}
+
+function updateStats() {
+  document.getElementById('count-real').textContent = stats.REAL;
+  document.getElementById('count-fake').textContent = stats.FAKE;
+  document.getElementById('count-mis').textContent = stats.MISLEADING;
+}
+
+// ─── EXAMPLE CHIPS ───────────────────────────────────────────────────────────
+function setExample(headline, url) {
+  document.getElementById('headline').value = headline;
+  document.getElementById('source-url').value = url;
+}
+
+// ─── VERIFY ──────────────────────────────────────────────────────────────────
+async function handleVerify() {
+  const headline = document.getElementById('headline').value.trim();
+  const sourceUrl = document.getElementById('source-url').value.trim();
+  const contractAddr = document.getElementById('contract-address').value.trim();
+  const walletAddr = document.getElementById('wallet-address').value.trim();
+
+  if (!headline || !sourceUrl) {
+    showError('Please enter both a headline and a source URL.');
+    return;
+  }
+
+  hideError();
+  setLoading(true);
+  showValidators();
+  hideVerdict();
+
+  try {
+    let result;
+    if (!contractAddr) {
+      // Demo mode
+      result = await runDemoMode(headline, sourceUrl);
+    } else {
+      // Live mode — submit to GenLayer
+      if (!walletAddr) throw new Error('Enter your wallet address for live mode.');
+      result = await runLiveMode(contractAddr, walletAddr, headline, sourceUrl);
+    }
+    displayVerdict(result, headline, sourceUrl);
+    addToHistory(headline, sourceUrl, result);
+  } catch (e) {
+    showError(e.message);
+    hideValidators();
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ─── DEMO MODE ───────────────────────────────────────────────────────────────
+const DEMO_VALIDATORS = [
+  { icon: '🤖', name: 'Validator Alpha · GPT-4o' },
+  { icon: '🧠', name: 'Validator Beta · Claude-3' },
+  { icon: '⚡', name: 'Validator Gamma · Llama-3' },
+  { icon: '🔬', name: 'Validator Delta · Gemini' },
+  { icon: '🛡️', name: 'Validator Epsilon · Mistral' },
+];
+
+async function runDemoMode(headline, sourceUrl) {
+  const list = document.getElementById('validator-list');
+
+  // Simulate validators one by one
+  for (let i = 0; i < DEMO_VALIDATORS.length; i++) {
+    const v = DEMO_VALIDATORS[i];
+    const row = document.createElement('div');
+    row.className = 'validator-row';
+    row.style.animationDelay = `${i * 0.12}s`;
+    row.innerHTML = `
+      <span class="v-icon">${v.icon}</span>
+      <span class="v-label">${v.name}</span>
+      <span class="v-status checking">fetching source…</span>
+    `;
+    list.appendChild(row);
+    await sleep(350 + i * 120);
+  }
+
+  await sleep(600);
+
+  // Determine demo verdict
+  const lower = headline.toLowerCase();
+  let verdict, reason;
+
+  if (lower.includes('flat earth') || lower.includes('cure cancer') || lower.includes('alien')) {
+    verdict = 'FAKE';
+    reason = 'The source article does not support this claim. No credible evidence was found matching this headline.';
+  } else if (lower.includes('slightly') || lower.includes('some') || lower.includes('little')) {
+    verdict = 'MISLEADING';
+    reason = 'The source contains related content but the headline exaggerates or distorts the actual findings in the article.';
+  } else {
+    verdict = 'REAL';
+    reason = 'The headline accurately reflects the content found in the source article. Key claims are supported by the evidence.';
+  }
+
+  const confidence = ['HIGH', 'HIGH', 'MEDIUM'][Math.floor(Math.random() * 3)];
+
+  // Update validator statuses
+  const rows = list.querySelectorAll('.validator-row');
+  for (let i = 0; i < rows.length; i++) {
+    await sleep(180);
+    const badge = rows[i].querySelector('.v-status');
+    badge.className = 'v-status done';
+    badge.textContent = verdict.toLowerCase();
+  }
+
+  await sleep(400);
+  return { verdict, confidence, reason };
+}
+
+// ─── LIVE MODE ───────────────────────────────────────────────────────────────
+async function runLiveMode(contractAddr, walletAddr, headline, sourceUrl) {
+  const list = document.getElementById('validator-list');
+  
+  // Show pending state
+  const row = document.createElement('div');
+  row.className = 'validator-row';
+  row.innerHTML = `<span class="v-icon">📡</span><span class="v-label">Submitting to GenLayer Bradbury…</span><span class="v-status checking">pending</span>`;
+  list.appendChild(row);
+
+  // Call write method via JSON-RPC
+  const writeRes = await fetch(STUDIO_RPC, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0', id: 1,
+      method: 'gen_sendTransaction',
+      params: [{
+        from: walletAddr,
+        to: contractAddr,
+        input: {
+          method: 'verify_headline',
+          args: [headline, sourceUrl],
+        }
+      }]
+    })
+  });
+  const writeData = await writeRes.json();
+  if (writeData.error) throw new Error('Transaction failed: ' + writeData.error.message);
+
+  const txHash = writeData.result;
+  row.querySelector('.v-status').textContent = 'tx: ' + txHash.slice(0,10) + '…';
+
+  // Poll for completion
+  let attempts = 0;
+  while (attempts < 40) {
+    await sleep(3000);
+    const statusRes = await fetch(STUDIO_RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 2,
+        method: 'gen_getTransactionStatus',
+        params: [txHash]
+      })
+    });
+    const statusData = await statusRes.json();
+    const status = statusData.result;
+
+    if (status === 'FINALIZED' || status === 'ACCEPTED') break;
+    if (status === 'REJECTED') throw new Error('Transaction rejected by validators.');
+    attempts++;
+  }
+
+  // Read the result
+  const readRes = await fetch(STUDIO_RPC, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0', id: 3,
+      method: 'gen_call',
+      params: [{
+        to: contractAddr,
+        input: { method: 'get_verdict', args: [headline] }
+      }, 'latest']
+    })
+  });
+  const readData = await readRes.json();
+  const raw = readData.result;
+  if (!raw || raw === 'NOT_VERIFIED') throw new Error('Verdict not yet available. Try reading manually from Studio.');
+
+  const parsed = JSON.parse(raw);
+  row.querySelector('.v-status').className = 'v-status done';
+  row.querySelector('.v-status').textContent = 'finalized';
+  return parsed.result;
+}
+
+// ─── DISPLAY VERDICT ─────────────────────────────────────────────────────────
+const VERDICT_MAP = {
+  REAL:       { icon: '✅', color: '#22d3a0', bg: 'rgba(34,211,160,.08)',  border: 'rgba(34,211,160,.3)',  label: 'VERIFIED REAL' },
+  FAKE:       { icon: '🚫', color: '#f0425a', bg: 'rgba(240,66,90,.08)',   border: 'rgba(240,66,90,.3)',   label: 'DETECTED FAKE' },
+  MISLEADING: { icon: '⚠️', color: '#f5b800', bg: 'rgba(245,184,0,.08)',   border: 'rgba(245,184,0,.3)',   label: 'MISLEADING' },
+};
+
+function displayVerdict(result, headline, sourceUrl) {
+  const vm = VERDICT_MAP[result.verdict] || VERDICT_MAP.FAKE;
+  const card = document.getElementById('verdict-card');
+
+  card.style.background = vm.bg;
+  card.style.border = `1px solid ${vm.border}`;
+  document.getElementById('v-icon').textContent = vm.icon;
+  document.getElementById('v-title').textContent = vm.label;
+  document.getElementById('v-title').style.color = vm.color;
+  document.getElementById('v-conf').textContent = result.confidence + ' CONFIDENCE · ' + result.verdict;
+  document.getElementById('v-reason').textContent = result.reason;
+  document.getElementById('v-reason').style.borderLeftColor = vm.color;
+  card.classList.add('visible');
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────────────────────
+function addToHistory(headline, sourceUrl, result) {
+  const entry = {
+    headline: headline.slice(0, 140),
+    sourceUrl,
+    verdict: result.verdict,
+    confidence: result.confidence,
+    reason: result.reason,
+    ts: Date.now(),
+  };
+  history.unshift(entry);
+  if (history.length > 50) history = history.slice(0, 50);
+  localStorage.setItem('nv-history', JSON.stringify(history));
+  recalcStats();
+  updateStats();
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = document.getElementById('history-container');
+  if (history.length === 0) {
+    container.innerHTML = '<div class="history-empty">No verifications yet. Submit a headline above.</div>';
+    return;
+  }
+  const COLORS = { REAL: '#22d3a0', FAKE: '#f0425a', MISLEADING: '#f5b800' };
+  const ICONS = { REAL: '✅', FAKE: '🚫', MISLEADING: '⚠️' };
+  container.innerHTML = `<div class="history-list">` +
+    history.map(h => `
+      <div class="history-item">
+        <div class="h-dot" style="background:${COLORS[h.verdict]||'#666'}"></div>
+        <div style="flex:1">
+          <div class="h-headline">${escHtml(h.headline)}</div>
+          <div class="h-meta">${ICONS[h.verdict]||''} ${h.verdict} · ${h.confidence} · <span style="color:var(--accent2)">${escHtml(h.sourceUrl.slice(0,50))}</span></div>
+        </div>
+      </div>`).join('') +
+  `</div>`;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setLoading(on) {
+  const btn = document.getElementById('verify-btn');
+  btn.disabled = on;
+  btn.className = on ? 'btn loading' : 'btn';
+  btn.textContent = on ? '⟳  AI Validators Fetching Source…' : '🔍  Verify with AI Consensus';
+}
+
+function showValidators() {
+  const sec = document.getElementById('validators-section');
+  document.getElementById('validator-list').innerHTML = '';
+  sec.classList.add('visible');
+  sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideValidators() {
+  document.getElementById('validators-section').classList.remove('visible');
+}
+function hideVerdict() {
+  document.getElementById('verdict-card').classList.remove('visible');
+}
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('error-box').style.display = 'none';
+}
+
+// Boot
+init();
+</script>
+</body>
+</html>
