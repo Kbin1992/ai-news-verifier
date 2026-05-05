@@ -11,7 +11,7 @@ class NewsVerifier(gl.Contract):
     Verdicts are stored permanently on-chain.
     """
 
-    verifications: dict  # stores headline -> result JSON
+    verifications: TreeMap[str, str]  # stores headline -> result JSON
 
     def __init__(self):
         self.verifications = {}
@@ -88,7 +88,7 @@ Possible confidence values: HIGH, MEDIUM, LOW"""
     @gl.public.view
     def get_all_verifications(self) -> dict:
         """Returns all stored verifications as a dict."""
-        return self.verifications
+        return dict(self.verifications)
 
     @gl.public.view
     def get_verification_count(self) -> int:

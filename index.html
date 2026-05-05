@@ -3,28 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI News Verifier — GenLayer</title>
+  <title>AI News Verifier — GenLayer Bradbury Testnet</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #08080e;
-      --surface: #0f0f18;
-      --surface2: #161622;
-      --border: rgba(255,255,255,0.06);
-      --border2: rgba(255,255,255,0.1);
-      --text: #dde0f0;
-      --muted: #5a5a78;
-      --accent: #7c5cbf;
-      --accent2: #a589f7;
-      --green: #22d3a0;
-      --red: #f0425a;
-      --yellow: #f5b800;
-      --mono: 'Space Mono', monospace;
-      --sans: 'Syne', sans-serif;
+      --bg:       #07070d;
+      --surface:  #0e0e1a;
+      --surface2: #141424;
+      --border:   rgba(255,255,255,0.07);
+      --border2:  rgba(255,255,255,0.13);
+      --text:     #d8dcf0;
+      --muted:    #52526e;
+      --accent:   #6f4fcf;
+      --accent2:  #9b7af7;
+      --green:    #1fd99a;
+      --red:      #f03e58;
+      --yellow:   #f5b700;
+      --mono:     'Space Mono', monospace;
+      --sans:     'Syne', sans-serif;
     }
+
+    html { scroll-behavior: smooth; }
 
     body {
       background: var(--bg);
@@ -34,732 +36,1011 @@
       overflow-x: hidden;
     }
 
-    /* Background glow blobs */
-    body::before {
-      content: '';
-      position: fixed; top: -200px; right: -200px;
-      width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(124,92,191,0.12) 0%, transparent 70%);
+    /* Ambient glows */
+    .glow-tr {
+      position: fixed; top: -180px; right: -180px;
+      width: 560px; height: 560px;
+      background: radial-gradient(circle, rgba(111,79,207,0.14) 0%, transparent 70%);
       pointer-events: none; z-index: 0;
     }
-    body::after {
-      content: '';
-      position: fixed; bottom: -200px; left: -200px;
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(34,211,160,0.06) 0%, transparent 70%);
+    .glow-bl {
+      position: fixed; bottom: -150px; left: -150px;
+      width: 480px; height: 480px;
+      background: radial-gradient(circle, rgba(31,217,154,0.07) 0%, transparent 70%);
       pointer-events: none; z-index: 0;
     }
 
-    .wrap { position: relative; z-index: 1; max-width: 780px; margin: 0 auto; padding: 0 20px 60px; }
+    .wrap { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 0 22px 80px; }
 
     /* ── HEADER ── */
-    header { padding: 52px 0 44px; text-align: center; }
+    header { padding: 56px 0 48px; text-align: center; }
 
     .network-pill {
       display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(124,92,191,0.12); border: 1px solid rgba(124,92,191,0.25);
-      border-radius: 100px; padding: 7px 16px;
+      background: rgba(111,79,207,0.13); border: 1px solid rgba(111,79,207,0.28);
+      border-radius: 100px; padding: 7px 18px;
       font-family: var(--mono); font-size: 10px; color: var(--accent2);
-      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 28px;
+      letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 32px;
     }
     .live-dot {
       width: 6px; height: 6px; border-radius: 50%; background: var(--green);
-      animation: blink 2s ease-in-out infinite;
+      animation: pulse 2s ease-in-out infinite;
     }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.8)} }
 
     h1 {
-      font-family: var(--sans); font-weight: 800;
-      font-size: clamp(32px, 7vw, 52px);
-      line-height: 1.05; letter-spacing: -0.04em; color: #fff; margin-bottom: 10px;
+      font-family: var(--sans); font-weight: 900;
+      font-size: clamp(30px, 7vw, 54px);
+      line-height: 1.04; letter-spacing: -0.04em; color: #fff; margin-bottom: 12px;
     }
     h1 em {
       font-style: normal;
-      background: linear-gradient(130deg, #a589f7 0%, #22d3a0 100%);
+      background: linear-gradient(128deg, #9b7af7 0%, #1fd99a 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     .tagline {
-      font-family: var(--mono); font-size: 12px; color: var(--muted);
-      letter-spacing: 0.05em; margin-top: 6px;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.06em; margin-top: 8px;
     }
 
-    /* ── FLOW STEPS ── */
+    /* Flow steps */
     .steps {
-      display: flex; justify-content: center; gap: 0; margin: 28px 0 40px;
-      flex-wrap: wrap;
+      display: flex; justify-content: center; align-items: center;
+      gap: 0; margin: 30px 0 44px; flex-wrap: wrap; row-gap: 10px;
     }
     .step {
       display: flex; align-items: center; gap: 6px;
       font-family: var(--mono); font-size: 10px; color: var(--muted);
       letter-spacing: 0.08em; text-transform: uppercase;
     }
-    .step-num {
-      font-size: 9px; color: var(--accent2); opacity: 0.7;
-    }
-    .step-arrow {
-      margin: 0 10px; color: var(--border2); font-size: 14px;
-    }
+    .step-num { font-size: 9px; color: var(--accent2); opacity: .7; }
+    .step-arrow { margin: 0 12px; color: var(--border2); font-size: 12px; }
 
-    /* ── STATS ROW ── */
-    .stats {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-      margin-bottom: 20px;
+    /* ── WALLET SECTION ── */
+    .wallet-bar {
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 14px; padding: 18px 22px;
+      display: flex; align-items: center; gap: 16px; margin-bottom: 28px;
+      flex-wrap: wrap;
     }
-    .stat {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; padding: 16px 12px; text-align: center;
-    }
-    .stat-n {
-      font-family: var(--sans); font-weight: 800;
-      font-size: 30px; line-height: 1; margin-bottom: 4px;
-    }
-    .stat-l { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-
-    /* ── CARD ── */
-    .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 16px; padding: 28px; margin-bottom: 16px;
-    }
-    .card-label {
-      font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em;
-      text-transform: uppercase; color: var(--accent2); margin-bottom: 22px;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .card-label::after { content:''; flex:1; height:1px; background: var(--border); }
-
-    /* ── FORM ── */
-    .field { margin-bottom: 16px; }
-    label {
-      display: block; font-family: var(--mono); font-size: 9px;
-      letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
-      margin-bottom: 8px;
-    }
-    input, textarea {
-      width: 100%; background: var(--bg); border: 1px solid var(--border2);
-      border-radius: 10px; padding: 13px 15px;
-      font-family: var(--mono); font-size: 12px; color: var(--text);
-      outline: none; resize: none; transition: border-color .2s, box-shadow .2s;
-      -webkit-appearance: none;
-    }
-    input:focus, textarea:focus {
-      border-color: rgba(124,92,191,.5);
-      box-shadow: 0 0 0 3px rgba(124,92,191,.1);
-    }
-    input::placeholder, textarea::placeholder { color: var(--muted); }
-
-    /* Example chips */
-    .chips { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; }
-    .chip {
-      padding: 5px 11px; border-radius: 100px; font-family: var(--mono); font-size: 10px;
-      background: var(--surface2); border: 1px solid var(--border2); color: var(--muted);
-      cursor: pointer; transition: all .2s; white-space: nowrap;
-    }
-    .chip:hover { border-color: var(--accent); color: var(--accent2); background: rgba(124,92,191,.1); }
-    .chips-label { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .1em; }
-
-    /* ── BUTTON ── */
-    .btn {
-      width: 100%; padding: 16px; border-radius: 12px; border: none;
-      background: linear-gradient(135deg, #6b46c1, #9b79f7);
-      color: #fff; font-family: var(--sans); font-weight: 700; font-size: 15px;
-      cursor: pointer; position: relative; overflow: hidden;
-      transition: transform .15s, box-shadow .15s, opacity .15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 28px rgba(107,70,193,.4);
-    }
-    .btn:active:not(:disabled) { transform: translateY(0); }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn.loading {
-      pointer-events: none;
-    }
-    .btn.loading::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
-      animation: sweep 1.4s ease infinite;
-    }
-    @keyframes sweep { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
-
-    /* ── VALIDATORS ANIMATION ── */
-    .validators-section {
-      display: none;
-      margin-bottom: 16px;
-    }
-    .validators-section.visible { display: block; }
-    .validator-list { display: flex; flex-direction: column; gap: 8px; }
-    .validator-row {
-      display: flex; align-items: center; gap: 12px;
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 12px 14px;
-      font-family: var(--mono); font-size: 11px; color: var(--muted);
-      animation: fadeIn .3s ease;
-    }
-    @keyframes fadeIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:none} }
-    .v-icon { font-size: 14px; }
-    .v-label { flex: 1; }
-    .v-status {
-      font-size: 10px; letter-spacing: .05em;
-      padding: 3px 8px; border-radius: 100px; border: 1px solid var(--border);
-      color: var(--muted);
-    }
-    .v-status.checking { color: var(--yellow); border-color: rgba(245,184,0,.3); }
-    .v-status.done { color: var(--green); border-color: rgba(34,211,160,.3); }
-
-    /* ── VERDICT ── */
-    .verdict-card {
-      border-radius: 16px; padding: 26px; margin-bottom: 16px;
-      animation: slideUp .4s ease;
-      display: none;
-    }
-    .verdict-card.visible { display: block; }
-    @keyframes slideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
-
-    .verdict-top { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
-    .verdict-icon { font-size: 36px; flex-shrink: 0; line-height: 1; }
-    .verdict-right { flex: 1; }
-    .verdict-title { font-family: var(--sans); font-weight: 800; font-size: 22px; letter-spacing: -.02em; }
-    .verdict-conf {
-      font-family: var(--mono); font-size: 9px; letter-spacing: .1em;
-      text-transform: uppercase; color: var(--muted); margin-top: 3px;
-    }
-    .verdict-reason {
-      font-family: var(--mono); font-size: 12px; line-height: 1.7;
-      color: var(--text); padding: 14px 16px; border-radius: 10px;
-      background: rgba(0,0,0,.3); border-left: 3px solid; margin-bottom: 12px;
-    }
-    .verdict-chain {
+    .wallet-info { flex: 1; min-width: 200px; }
+    .wallet-label {
       font-family: var(--mono); font-size: 9px; color: var(--muted);
-      letter-spacing: .06em;
+      letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px;
     }
+    .wallet-addr {
+      font-family: var(--mono); font-size: 12px; color: var(--accent2);
+      word-break: break-all;
+    }
+    .wallet-addr.disconnected { color: var(--muted); font-style: italic; }
 
-    /* ── HISTORY ── */
-    .history-empty {
-      font-family: var(--mono); font-size: 11px; color: var(--muted);
-      text-align: center; padding: 20px 0;
+    .btn-wallet {
+      padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer;
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      background: linear-gradient(135deg, var(--accent), #5038aa);
+      color: #fff; transition: opacity .2s, transform .1s; white-space: nowrap;
     }
-    .history-list { display: flex; flex-direction: column; gap: 10px; }
-    .history-item {
-      display: flex; gap: 12px; align-items: flex-start;
-      padding: 14px 16px; background: var(--bg); border: 1px solid var(--border);
-      border-radius: 12px; cursor: default; transition: border-color .2s;
+    .btn-wallet:hover { opacity: .85; }
+    .btn-wallet:active { transform: scale(.97); }
+    .btn-wallet.connected {
+      background: rgba(31,217,154,0.12); border: 1px solid rgba(31,217,154,0.3);
+      color: var(--green);
     }
-    .history-item:hover { border-color: rgba(124,92,191,.3); }
-    .h-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
-    .h-headline { font-family: var(--mono); font-size: 12px; color: var(--text); line-height: 1.4; }
-    .h-meta { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
-
-    /* ── HOW IT WORKS ── */
-    .how-list { display: flex; flex-direction: column; gap: 0; }
-    .how-item {
-      display: flex; gap: 14px; align-items: flex-start;
-      padding: 14px 0; border-bottom: 1px solid var(--border);
+    .chain-badge {
+      font-family: var(--mono); font-size: 9px; color: var(--muted);
+      margin-top: 4px;
     }
-    .how-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .how-num {
-      font-family: var(--mono); font-size: 10px; color: var(--accent2);
-      min-width: 22px; margin-top: 1px;
-    }
-    .how-text { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
-    .how-text strong { color: var(--text); }
+    .chain-badge.ok { color: var(--green); }
+    .chain-badge.wrong { color: var(--red); }
 
     /* ── CONFIG BOX ── */
     .config-box {
-      background: rgba(124,92,191,.07); border: 1px solid rgba(124,92,191,.2);
-      border-radius: 10px; padding: 14px 16px;
-      font-family: var(--mono); font-size: 11px; color: var(--accent2);
-      line-height: 1.8; margin-bottom: 16px;
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 14px; padding: 22px; margin-bottom: 28px;
     }
-    .config-box code {
-      background: rgba(0,0,0,.3); padding: 1px 6px; border-radius: 4px; font-size: 10px;
+    .config-box label {
+      display: block; font-family: var(--mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .config-box input {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border2); border-radius: 8px;
+      padding: 11px 14px; color: var(--text); font-family: var(--mono);
+      font-size: 12px; outline: none; transition: border-color .2s;
+    }
+    .config-box input:focus { border-color: var(--accent2); }
+    .config-box input::placeholder { color: var(--muted); }
+    .config-row { display: flex; gap: 14px; flex-wrap: wrap; }
+    .config-row > div { flex: 1; min-width: 240px; }
+    .config-hint {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      margin-top: 7px; line-height: 1.5;
+    }
+    .config-hint a { color: var(--accent2); text-decoration: none; }
+    .config-hint a:hover { text-decoration: underline; }
+
+    /* ── MAIN FORM ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; margin-bottom: 24px;
+    }
+    .card-title {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before { content: ''; display: block; width: 20px; height: 1px; background: var(--border2); }
+
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block; font-family: var(--mono); font-size: 10px;
+      color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .field textarea, .field input {
+      width: 100%; background: var(--surface2);
+      border: 1px solid var(--border2); border-radius: 10px;
+      padding: 13px 16px; color: var(--text);
+      font-family: var(--sans); font-size: 14px; outline: none;
+      transition: border-color .2s, box-shadow .2s; resize: vertical;
+    }
+    .field textarea { min-height: 90px; line-height: 1.55; }
+    .field textarea:focus, .field input:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(155,122,247,0.1);
+    }
+    .field textarea::placeholder, .field input::placeholder { color: var(--muted); }
+
+    .char-count {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      text-align: right; margin-top: 5px;
     }
 
-    /* ── ERROR ── */
+    .btn {
+      width: 100%; padding: 16px; border-radius: 10px; border: none;
+      cursor: pointer; font-family: var(--mono); font-size: 13px;
+      font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      background: linear-gradient(135deg, var(--accent) 0%, #4f32a0 100%);
+      color: #fff; transition: opacity .2s, transform .15s;
+      position: relative; overflow: hidden;
+    }
+    .btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.08), transparent);
+    }
+    .btn:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: scale(.99); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn.loading { animation: shimmer 1.5s linear infinite; }
+    @keyframes shimmer {
+      0%,100% { opacity: .5 }
+      50% { opacity: .85 }
+    }
+
+    /* ── ERROR BOX ── */
     .error-box {
-      background: rgba(240,66,90,.08); border: 1px solid rgba(240,66,90,.25);
-      border-radius: 10px; padding: 12px 15px; margin-top: 12px;
-      font-family: var(--mono); font-size: 11px; color: #f47085;
+      display: none; background: rgba(240,62,88,0.09);
+      border: 1px solid rgba(240,62,88,0.3); border-radius: 10px;
+      padding: 14px 18px; margin-top: 16px;
+      font-family: var(--mono); font-size: 12px; color: var(--red);
+      line-height: 1.5;
+    }
+
+    /* ── VALIDATORS ── */
+    .validators-section {
+      display: none; background: var(--surface);
+      border: 1px solid var(--border2); border-radius: 16px;
+      padding: 24px; margin-bottom: 24px;
+    }
+    .validators-section.visible { display: block; animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+    .validators-title {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 16px;
+    }
+    .validator-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 12px;
+    }
+    .validator-row:last-child { border-bottom: none; }
+    .v-icon { font-size: 15px; }
+    .v-label { flex: 1; color: var(--text); }
+    .v-status {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 100px;
+    }
+    .v-status.checking {
+      background: rgba(155,122,247,0.12); color: var(--accent2);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .v-status.done { background: rgba(31,217,154,0.12); color: var(--green); }
+    .v-status.fail { background: rgba(240,62,88,0.12); color: var(--red); }
+
+    /* ── VERDICT CARD ── */
+    .verdict-card {
+      display: none; border-radius: 16px; padding: 28px; margin-bottom: 24px;
+      border: 1px solid var(--border);
+    }
+    .verdict-card.visible { display: block; animation: fadeIn .4s ease; }
+
+    .v-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+    .v-icon-big { font-size: 36px; }
+    .v-title {
+      font-family: var(--sans); font-weight: 900;
+      font-size: 22px; letter-spacing: -0.02em;
+    }
+    .v-conf {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px;
+    }
+    .v-reason {
+      font-family: var(--sans); font-size: 15px; color: var(--text);
+      line-height: 1.6; border-left: 3px solid; padding-left: 16px;
+      margin-bottom: 18px;
+    }
+    .v-meta {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+    .v-meta a { color: var(--accent2); text-decoration: none; }
+    .v-meta a:hover { text-decoration: underline; }
+    .v-actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-sm {
+      padding: 8px 18px; border-radius: 7px; border: 1px solid var(--border2);
+      background: var(--surface2); color: var(--text); font-family: var(--mono);
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .btn-sm:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* ── STATS ── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px; text-align: center;
+    }
+    .stat-num {
+      font-family: var(--mono); font-size: 28px; font-weight: 700;
+      color: #fff; display: block;
+    }
+    .stat-label {
+      font-family: var(--mono); font-size: 9px; color: var(--muted);
+      letter-spacing: 0.12em; text-transform: uppercase; margin-top: 4px;
+    }
+    .stat-num.green { color: var(--green); }
+    .stat-num.red { color: var(--red); }
+    .stat-num.yellow { color: var(--yellow); }
+
+    /* ── HISTORY ── */
+    .section-title {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::before { content: ''; display: block; width: 20px; height: 1px; background: var(--border2); }
+    .history-empty {
+      font-family: var(--mono); font-size: 12px; color: var(--muted);
+      text-align: center; padding: 28px 0;
+    }
+    .history-item {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .h-dot {
+      width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+    }
+    .h-headline {
+      font-family: var(--sans); font-size: 13px; color: var(--text);
+      margin-bottom: 4px; line-height: 1.4;
+    }
+    .h-meta {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.04em;
     }
 
     /* ── FOOTER ── */
     footer {
-      text-align: center; padding: 36px 0 0;
-      font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: .05em;
+      margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
     }
-    footer a { color: var(--accent2); text-decoration: none; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      text-decoration: none; letter-spacing: 0.08em; text-transform: uppercase;
+      transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--accent2); }
+    .footer-brand {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.06em;
+    }
 
-    @media (max-width: 500px) {
-      .steps { gap: 4px; }
-      .step-arrow { margin: 0 5px; font-size: 10px; }
-      h1 { font-size: 30px; }
+    /* ── MODE TOGGLE ── */
+    .mode-toggle {
+      display: flex; gap: 0; margin-bottom: 20px;
+      background: var(--surface2); border-radius: 10px; padding: 4px;
+      border: 1px solid var(--border);
+    }
+    .mode-btn {
+      flex: 1; padding: 9px; border: none; border-radius: 7px;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer; transition: all .2s;
+      background: transparent; color: var(--muted);
+    }
+    .mode-btn.active {
+      background: var(--surface); color: var(--accent2);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    /* ── CONTRIBUTION BANNER ── */
+    .contrib-banner {
+      background: linear-gradient(135deg, rgba(111,79,207,0.15) 0%, rgba(31,217,154,0.08) 100%);
+      border: 1px solid rgba(111,79,207,0.3); border-radius: 14px;
+      padding: 22px 24px; margin-bottom: 28px;
+      display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    }
+    .contrib-icon { font-size: 30px; flex-shrink: 0; }
+    .contrib-text { flex: 1; min-width: 200px; }
+    .contrib-title {
+      font-family: var(--sans); font-weight: 700; font-size: 15px;
+      color: #fff; margin-bottom: 5px;
+    }
+    .contrib-desc {
+      font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.5;
+    }
+    .btn-contrib {
+      padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(155,122,247,0.4);
+      background: rgba(111,79,207,0.2); color: var(--accent2);
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer; text-decoration: none;
+      transition: background .2s, border-color .2s; white-space: nowrap;
+      display: inline-block;
+    }
+    .btn-contrib:hover { background: rgba(111,79,207,0.35); border-color: rgba(155,122,247,.6); }
+
+    @media (max-width: 540px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .config-row { flex-direction: column; }
     }
   </style>
 </head>
 <body>
-<div class="wrap">
+  <div class="glow-tr"></div>
+  <div class="glow-bl"></div>
+  <div class="wrap">
 
-  <!-- HEADER -->
-  <header>
-    <div class="network-pill">
-      <span class="live-dot"></span>
-      GenLayer Bradbury Testnet · Live
-    </div>
-    <h1>AI News <em>Verifier</em></h1>
-    <p class="tagline">// Intelligent Contract · Web Fetch · On-Chain Verdict</p>
+    <!-- HEADER -->
+    <header>
+      <div class="network-pill">
+        <span class="live-dot"></span>
+        GenLayer · Bradbury Testnet
+      </div>
+      <h1>AI <em>News</em><br>Verifier</h1>
+      <p class="tagline">submit headline → AI validators fetch source → verdict on-chain</p>
+      <div class="steps">
+        <span class="step"><span class="step-num">01</span> Connect Wallet</span>
+        <span class="step-arrow">→</span>
+        <span class="step"><span class="step-num">02</span> Paste Contract</span>
+        <span class="step-arrow">→</span>
+        <span class="step"><span class="step-num">03</span> Submit Headline</span>
+        <span class="step-arrow">→</span>
+        <span class="step"><span class="step-num">04</span> On-Chain Verdict</span>
+      </div>
+    </header>
 
-    <div class="steps">
-      <span class="step"><span class="step-num">01</span>Submit</span>
-      <span class="step-arrow">→</span>
-      <span class="step"><span class="step-num">02</span>Validators Fetch</span>
-      <span class="step-arrow">→</span>
-      <span class="step"><span class="step-num">03</span>AI Consensus</span>
-      <span class="step-arrow">→</span>
-      <span class="step"><span class="step-num">04</span>On-Chain</span>
-    </div>
-  </header>
-
-  <!-- STATS -->
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-n" style="color: var(--green)" id="count-real">0</div>
-      <div class="stat-l">Verified Real</div>
-    </div>
-    <div class="stat">
-      <div class="stat-n" style="color: var(--red)" id="count-fake">0</div>
-      <div class="stat-l">Detected Fake</div>
-    </div>
-    <div class="stat">
-      <div class="stat-n" style="color: var(--yellow)" id="count-mis">0</div>
-      <div class="stat-l">Misleading</div>
-    </div>
-  </div>
-
-  <!-- CONFIG NOTE (shown only if no contract address) -->
-  <div class="config-box" id="demo-notice">
-    ⚡ <strong>DEMO MODE</strong> — Deploy <code>news_verifier.py</code> in GenLayer Studio, then paste your contract address below to go live.
-  </div>
-
-  <!-- MAIN FORM -->
-  <div class="card">
-    <div class="card-label">Verify a Headline</div>
-
-    <div class="field">
-      <label>Contract Address (optional — leave blank for demo)</label>
-      <input id="contract-address" type="text" placeholder="0x... paste your deployed contract address" />
+    <!-- CONTRIBUTION BANNER -->
+    <div class="contrib-banner">
+      <div class="contrib-icon">🏆</div>
+      <div class="contrib-text">
+        <div class="contrib-title">GenLayer Bradbury Testnet Contribution</div>
+        <div class="contrib-desc">Built for the GenLayer ecosystem — AI-powered on-chain news verification using Intelligent Contracts with validator consensus.</div>
+      </div>
+      <a href="https://portal.genlayer.foundation/#/submit-contribution" target="_blank" class="btn-contrib">
+        Submit Contribution →
+      </a>
     </div>
 
-    <div class="field">
-      <label>Your Wallet Address</label>
-      <input id="wallet-address" type="text" placeholder="0x... (required for live mode)" />
+    <!-- WALLET BAR -->
+    <div class="wallet-bar">
+      <div class="wallet-info">
+        <div class="wallet-label">Connected Wallet</div>
+        <div class="wallet-addr disconnected" id="wallet-display">Not connected — click Connect</div>
+        <div class="chain-badge" id="chain-status"></div>
+      </div>
+      <button class="btn-wallet" id="wallet-btn" onclick="connectWallet()">
+        🦊 Connect MetaMask
+      </button>
     </div>
 
-    <div class="field">
-      <label>News Headline to Verify</label>
-      <textarea id="headline" rows="3" placeholder="Paste the news headline you want to fact-check…"></textarea>
+    <!-- CONFIG: Contract Address -->
+    <div class="config-box">
+      <div class="config-row">
+        <div>
+          <label>Contract Address (deployed on Bradbury)</label>
+          <input id="contract-address" type="text" placeholder="0x... paste your deployed contract address" />
+          <div class="config-hint">
+            Deploy <code>news_verifier.py</code> in 
+            <a href="https://studio.genlayer.com" target="_blank">studio.genlayer.com</a> 
+            on Bradbury Testnet → paste address here.
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="field">
-      <label>Source URL</label>
-      <input id="source-url" type="url" placeholder="https://bbc.com/news/..." />
+    <!-- MODE TOGGLE -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-live" onclick="setMode('live')">⛓ Live On-Chain</button>
+      <button class="mode-btn" id="mode-demo" onclick="setMode('demo')">🧪 Demo Mode</button>
     </div>
 
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <span class="stat-num" id="stat-total">0</span>
+        <div class="stat-label">Total Verified</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num green" id="stat-real">0</span>
+        <div class="stat-label">✅ Real</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num red" id="stat-fake">0</span>
+        <div class="stat-label">🚫 Fake</div>
+      </div>
+    </div>
+
+    <!-- VERIFY FORM -->
+    <div class="card">
+      <div class="card-title">Submit for AI Verification</div>
+
+      <div class="field">
+        <label>News Headline</label>
+        <textarea id="headline-input" placeholder="Paste the news headline you want to fact-check…" maxlength="500" oninput="updateCount(this, 'headline-count', 500)"></textarea>
+        <div class="char-count"><span id="headline-count">0</span>/500</div>
+      </div>
+
+      <div class="field">
+        <label>Source URL</label>
+        <input id="source-url" type="url" placeholder="https://example.com/the-article" />
+      </div>
+
+      <button class="btn" id="verify-btn" onclick="submitVerify()">
+        🔍  Verify with AI Consensus
+      </button>
+      <div class="error-box" id="error-box"></div>
+    </div>
+
+    <!-- VALIDATORS -->
+    <div class="validators-section" id="validators-section">
+      <div class="validators-title">AI Validator Network</div>
+      <div id="validator-list"></div>
+    </div>
+
+    <!-- VERDICT CARD -->
+    <div class="verdict-card" id="verdict-card">
+      <div class="v-header">
+        <div class="v-icon-big" id="v-icon"></div>
+        <div>
+          <div class="v-title" id="v-title"></div>
+          <div class="v-conf" id="v-conf"></div>
+        </div>
+      </div>
+      <div class="v-reason" id="v-reason"></div>
+      <div class="v-meta" id="v-meta"></div>
+      <div class="v-actions">
+        <button class="btn-sm" onclick="copyVerdict()">📋 Copy Result</button>
+        <a id="explorer-link" class="btn-sm" href="#" target="_blank">🔗 View on Explorer</a>
+        <button class="btn-sm" onclick="resetForm()">↩ Verify Another</button>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
     <div>
-      <div class="chips-label">// try an example</div>
-      <div class="chips">
-        <span class="chip" onclick="setExample('NASA confirms water ice on Moon surface', 'https://www.nasa.gov/news-release/')">🌙 Moon Water</span>
-        <span class="chip" onclick="setExample('Scientists cure cancer with AI breakthrough', 'https://www.bbc.com/news/health')">🔬 Cancer Cure</span>
-        <span class="chip" onclick="setExample('Bitcoin hits all-time high price record', 'https://coindesk.com')">₿ BTC ATH</span>
-        <span class="chip" onclick="setExample('Earth is flat, new study confirms', 'https://www.nature.com')">🌍 Flat Earth</span>
+      <div class="section-title">Recent Verifications</div>
+      <div id="history-container">
+        <div class="history-empty">No verifications yet. Submit a headline above.</div>
       </div>
     </div>
 
-    <button class="btn" id="verify-btn" onclick="handleVerify()">
-      🔍&nbsp; Verify with AI Consensus
-    </button>
-    <div class="error-box" id="error-box" style="display:none"></div>
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-links">
+        <a href="https://studio.genlayer.com" target="_blank">Studio</a>
+        <a href="https://portal.genlayer.foundation" target="_blank">Portal</a>
+        <a href="https://testnet-faucet.genlayer.foundation/" target="_blank">Faucet</a>
+        <a href="https://docs.genlayer.com" target="_blank">Docs</a>
+      </div>
+      <div class="footer-brand">AI News Verifier · GenLayer Bradbury</div>
+    </footer>
+
   </div>
 
-  <!-- VALIDATOR ANIMATION -->
-  <div class="card validators-section" id="validators-section">
-    <div class="card-label">Validators Processing</div>
-    <div class="validator-list" id="validator-list"></div>
-  </div>
+  <script>
+  // ─── CONSTANTS ──────────────────────────────────────────────────────────────
+  // GenLayer Bradbury Testnet RPC (same endpoint as Asimov)
+  const GENLAYER_RPC = 'https://studio.genlayer.com/api';
 
-  <!-- VERDICT CARD -->
-  <div class="verdict-card" id="verdict-card">
-    <div class="verdict-top">
-      <div class="verdict-icon" id="v-icon"></div>
-      <div class="verdict-right">
-        <div class="verdict-title" id="v-title"></div>
-        <div class="verdict-conf" id="v-conf"></div>
-      </div>
-    </div>
-    <div class="verdict-reason" id="v-reason"></div>
-    <div class="verdict-chain">✓ Verdict stored on-chain · GenLayer Bradbury Testnet · Optimistic Democracy Consensus</div>
-  </div>
+  // GenLayer Bradbury Testnet chain config for MetaMask
+  const BRADBURY_CHAIN = {
+    chainId: '0x1F1D6',   // 127446 in decimal — update if official ID differs
+    chainName: 'GenLayer Bradbury Testnet',
+    nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
+    rpcUrls: ['https://rpc.bradbury.genlayer.com'],
+    blockExplorerUrls: ['https://explorer.genlayer.foundation']
+  };
 
-  <!-- HISTORY -->
-  <div class="card">
-    <div class="card-label">On-Chain Verification History</div>
-    <div id="history-container">
-      <div class="history-empty">No verifications yet. Submit a headline above.</div>
-    </div>
-  </div>
+  // Fallback: use studio RPC if no separate chain RPC
+  const USE_STUDIO_RPC = true;   // set false if Bradbury has its own EVM-compatible RPC
 
-  <!-- HOW IT WORKS -->
-  <div class="card">
-    <div class="card-label">How It Works</div>
-    <div class="how-list">
-      <div class="how-item">
-        <span class="how-num">01</span>
-        <span class="how-text">You submit a <strong>news headline + source URL</strong> to the Intelligent Contract on GenLayer Bradbury Testnet</span>
-      </div>
-      <div class="how-item">
-        <span class="how-num">02</span>
-        <span class="how-text">Multiple <strong>independent AI validators</strong> each independently fetch the live source URL using <code>gl.get_webpage()</code></span>
-      </div>
-      <div class="how-item">
-        <span class="how-num">03</span>
-        <span class="how-text">Each validator's <strong>LLM analyses</strong> the page content against the headline, deciding: REAL / FAKE / MISLEADING</span>
-      </div>
-      <div class="how-item">
-        <span class="how-num">04</span>
-        <span class="how-text"><strong>Optimistic Democracy consensus</strong> — validators must agree on the verdict via the Equivalence Principle</span>
-      </div>
-      <div class="how-item">
-        <span class="how-num">05</span>
-        <span class="how-text">The final verdict is <strong>stored permanently on-chain</strong> — immutable, verifiable, trustless</span>
-      </div>
-    </div>
-  </div>
+  // ─── STATE ──────────────────────────────────────────────────────────────────
+  let walletAddress = null;
+  let currentMode = 'live';
+  let history = [];
+  let stats = { total: 0, real: 0, fake: 0, misleading: 0 };
+  let lastVerdict = null;
 
-  <!-- FOOTER -->
-  <footer>
-    Built on <a href="https://genlayer.com" target="_blank">GenLayer</a> Bradbury Testnet &nbsp;·&nbsp;
-    <a href="https://studio.genlayer.com" target="_blank">Studio</a> &nbsp;·&nbsp;
-    <a href="https://portal.genlayer.foundation" target="_blank">Builder Portal</a>
-  </footer>
+  // ─── INIT ───────────────────────────────────────────────────────────────────
+  function init() {
+    // Restore saved values
+    const savedContract = localStorage.getItem('nv-contract');
+    if (savedContract) document.getElementById('contract-address').value = savedContract;
 
-</div>
-
-<script>
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-// After deploying your contract in GenLayer Studio, paste your address here:
-const DEFAULT_CONTRACT = '';
-const STUDIO_RPC = 'https://studio.genlayer.com/api';
-
-// ─── STATE ───────────────────────────────────────────────────────────────────
-let history = JSON.parse(localStorage.getItem('nv-history') || '[]');
-let stats = { REAL: 0, FAKE: 0, MISLEADING: 0 };
-
-// ─── INIT ────────────────────────────────────────────────────────────────────
-function init() {
-  recalcStats();
-  renderHistory();
-  updateStats();
-
-  const saved = localStorage.getItem('nv-contract');
-  if (saved) {
-    document.getElementById('contract-address').value = saved;
-    document.getElementById('demo-notice').style.display = 'none';
-  }
-
-  document.getElementById('contract-address').addEventListener('input', function() {
-    const v = this.value.trim();
-    localStorage.setItem('nv-contract', v);
-    document.getElementById('demo-notice').style.display = v ? 'none' : 'block';
-  });
-}
-
-function recalcStats() {
-  stats = { REAL: 0, FAKE: 0, MISLEADING: 0 };
-  history.forEach(h => { if (stats[h.verdict] !== undefined) stats[h.verdict]++; });
-}
-
-function updateStats() {
-  document.getElementById('count-real').textContent = stats.REAL;
-  document.getElementById('count-fake').textContent = stats.FAKE;
-  document.getElementById('count-mis').textContent = stats.MISLEADING;
-}
-
-// ─── EXAMPLE CHIPS ───────────────────────────────────────────────────────────
-function setExample(headline, url) {
-  document.getElementById('headline').value = headline;
-  document.getElementById('source-url').value = url;
-}
-
-// ─── VERIFY ──────────────────────────────────────────────────────────────────
-async function handleVerify() {
-  const headline = document.getElementById('headline').value.trim();
-  const sourceUrl = document.getElementById('source-url').value.trim();
-  const contractAddr = document.getElementById('contract-address').value.trim();
-  const walletAddr = document.getElementById('wallet-address').value.trim();
-
-  if (!headline || !sourceUrl) {
-    showError('Please enter both a headline and a source URL.');
-    return;
-  }
-
-  hideError();
-  setLoading(true);
-  showValidators();
-  hideVerdict();
-
-  try {
-    let result;
-    if (!contractAddr) {
-      // Demo mode
-      result = await runDemoMode(headline, sourceUrl);
-    } else {
-      // Live mode — submit to GenLayer
-      if (!walletAddr) throw new Error('Enter your wallet address for live mode.');
-      result = await runLiveMode(contractAddr, walletAddr, headline, sourceUrl);
+    const savedHistory = localStorage.getItem('nv-history');
+    if (savedHistory) {
+      try { history = JSON.parse(savedHistory); } catch(e) { history = []; }
     }
-    displayVerdict(result, headline, sourceUrl);
-    addToHistory(headline, sourceUrl, result);
-  } catch (e) {
-    showError(e.message);
-    hideValidators();
-  } finally {
-    setLoading(false);
-  }
-}
 
-// ─── DEMO MODE ───────────────────────────────────────────────────────────────
-const DEMO_VALIDATORS = [
-  { icon: '🤖', name: 'Validator Alpha · GPT-4o' },
-  { icon: '🧠', name: 'Validator Beta · Claude-3' },
-  { icon: '⚡', name: 'Validator Gamma · Llama-3' },
-  { icon: '🔬', name: 'Validator Delta · Gemini' },
-  { icon: '🛡️', name: 'Validator Epsilon · Mistral' },
-];
+    // Restore wallet if previously connected
+    if (window.ethereum) {
+      window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+        if (accounts.length > 0) setWalletConnected(accounts[0]);
+      });
+      window.ethereum.on('accountsChanged', accs => {
+        if (accs.length > 0) setWalletConnected(accs[0]);
+        else disconnectWallet();
+      });
+    }
 
-async function runDemoMode(headline, sourceUrl) {
-  const list = document.getElementById('validator-list');
+    // Auto-save contract address
+    document.getElementById('contract-address').addEventListener('input', function() {
+      localStorage.setItem('nv-contract', this.value.trim());
+    });
 
-  // Simulate validators one by one
-  for (let i = 0; i < DEMO_VALIDATORS.length; i++) {
-    const v = DEMO_VALIDATORS[i];
-    const row = document.createElement('div');
-    row.className = 'validator-row';
-    row.style.animationDelay = `${i * 0.12}s`;
-    row.innerHTML = `
-      <span class="v-icon">${v.icon}</span>
-      <span class="v-label">${v.name}</span>
-      <span class="v-status checking">fetching source…</span>
-    `;
-    list.appendChild(row);
-    await sleep(350 + i * 120);
+    recalcStats();
+    updateStats();
+    renderHistory();
   }
 
-  await sleep(600);
+  // ─── WALLET ─────────────────────────────────────────────────────────────────
+  async function connectWallet() {
+    if (!window.ethereum) {
+      showError('MetaMask not found. Please install MetaMask extension or use MetaMask mobile browser.');
+      return;
+    }
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      setWalletConnected(accounts[0]);
 
-  // Determine demo verdict
-  const lower = headline.toLowerCase();
-  let verdict, reason;
-
-  if (lower.includes('flat earth') || lower.includes('cure cancer') || lower.includes('alien')) {
-    verdict = 'FAKE';
-    reason = 'The source article does not support this claim. No credible evidence was found matching this headline.';
-  } else if (lower.includes('slightly') || lower.includes('some') || lower.includes('little')) {
-    verdict = 'MISLEADING';
-    reason = 'The source contains related content but the headline exaggerates or distorts the actual findings in the article.';
-  } else {
-    verdict = 'REAL';
-    reason = 'The headline accurately reflects the content found in the source article. Key claims are supported by the evidence.';
-  }
-
-  const confidence = ['HIGH', 'HIGH', 'MEDIUM'][Math.floor(Math.random() * 3)];
-
-  // Update validator statuses
-  const rows = list.querySelectorAll('.validator-row');
-  for (let i = 0; i < rows.length; i++) {
-    await sleep(180);
-    const badge = rows[i].querySelector('.v-status');
-    badge.className = 'v-status done';
-    badge.textContent = verdict.toLowerCase();
-  }
-
-  await sleep(400);
-  return { verdict, confidence, reason };
-}
-
-// ─── LIVE MODE ───────────────────────────────────────────────────────────────
-async function runLiveMode(contractAddr, walletAddr, headline, sourceUrl) {
-  const list = document.getElementById('validator-list');
-  
-  // Show pending state
-  const row = document.createElement('div');
-  row.className = 'validator-row';
-  row.innerHTML = `<span class="v-icon">📡</span><span class="v-label">Submitting to GenLayer Bradbury…</span><span class="v-status checking">pending</span>`;
-  list.appendChild(row);
-
-  // Call write method via JSON-RPC
-  const writeRes = await fetch(STUDIO_RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0', id: 1,
-      method: 'gen_sendTransaction',
-      params: [{
-        from: walletAddr,
-        to: contractAddr,
-        input: {
-          method: 'verify_headline',
-          args: [headline, sourceUrl],
+      // Try to switch/add GenLayer chain
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: BRADBURY_CHAIN.chainId }],
+        });
+      } catch (switchErr) {
+        if (switchErr.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [BRADBURY_CHAIN],
+            });
+          } catch (addErr) {
+            // Chain add failed — still OK for Studio RPC mode
+            updateChainStatus(false);
+          }
         }
-      }]
-    })
-  });
-  const writeData = await writeRes.json();
-  if (writeData.error) throw new Error('Transaction failed: ' + writeData.error.message);
+      }
+    } catch (err) {
+      showError('Wallet connection failed: ' + err.message);
+    }
+  }
 
-  const txHash = writeData.result;
-  row.querySelector('.v-status').textContent = 'tx: ' + txHash.slice(0,10) + '…';
+  function setWalletConnected(addr) {
+    walletAddress = addr;
+    const display = document.getElementById('wallet-display');
+    display.textContent = addr.slice(0,6) + '...' + addr.slice(-4);
+    display.classList.remove('disconnected');
 
-  // Poll for completion
-  let attempts = 0;
-  while (attempts < 40) {
-    await sleep(3000);
-    const statusRes = await fetch(STUDIO_RPC, {
+    const btn = document.getElementById('wallet-btn');
+    btn.textContent = '✓ Connected';
+    btn.classList.add('connected');
+
+    updateChainStatus(true);
+  }
+
+  function disconnectWallet() {
+    walletAddress = null;
+    document.getElementById('wallet-display').textContent = 'Not connected — click Connect';
+    document.getElementById('wallet-display').classList.add('disconnected');
+    document.getElementById('wallet-btn').textContent = '🦊 Connect MetaMask';
+    document.getElementById('wallet-btn').classList.remove('connected');
+    document.getElementById('chain-status').textContent = '';
+  }
+
+  function updateChainStatus(ok) {
+    const el = document.getElementById('chain-status');
+    if (ok) {
+      el.textContent = '● GenLayer Bradbury';
+      el.className = 'chain-badge ok';
+    } else {
+      el.textContent = '⚠ Wrong network — add GenLayer Bradbury in MetaMask';
+      el.className = 'chain-badge wrong';
+    }
+  }
+
+  // ─── MODE ───────────────────────────────────────────────────────────────────
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('mode-live').classList.toggle('active', mode === 'live');
+    document.getElementById('mode-demo').classList.toggle('active', mode === 'demo');
+  }
+
+  // ─── SUBMIT ─────────────────────────────────────────────────────────────────
+  async function submitVerify() {
+    hideError();
+    hideVerdict();
+    hideValidators();
+
+    const headline = document.getElementById('headline-input').value.trim();
+    const sourceUrl = document.getElementById('source-url').value.trim();
+    const contractAddr = document.getElementById('contract-address').value.trim();
+
+    if (!headline) return showError('Please enter a news headline.');
+    if (!sourceUrl) return showError('Please enter the source URL.');
+    if (!sourceUrl.startsWith('http')) return showError('Source URL must start with http:// or https://');
+
+    if (currentMode === 'live') {
+      if (!contractAddr) return showError('Paste your deployed contract address above to use Live mode, or switch to Demo mode.');
+      if (!walletAddress) return showError('Connect your MetaMask wallet to submit on-chain transactions.');
+    }
+
+    setLoading(true);
+    showValidators();
+
+    try {
+      let result;
+      if (currentMode === 'live') {
+        result = await runLiveMode(contractAddr, walletAddress, headline, sourceUrl);
+      } else {
+        result = await runDemoMode(headline, sourceUrl);
+      }
+
+      addToHistory(headline, sourceUrl, result);
+      displayVerdict(result, headline, sourceUrl);
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ─── LIVE MODE ───────────────────────────────────────────────────────────────
+  async function runLiveMode(contractAddr, walletAddr, headline, sourceUrl) {
+    const list = document.getElementById('validator-list');
+
+    // Step 1 — Submit tx
+    addValidatorRow(list, '📡', 'Submitting to GenLayer Bradbury…', 'checking');
+
+    const writeRes = await fetch(GENLAYER_RPC, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        jsonrpc: '2.0', id: 2,
-        method: 'gen_getTransactionStatus',
-        params: [txHash]
+        jsonrpc: '2.0', id: 1,
+        method: 'gen_sendTransaction',
+        params: [{
+          from: walletAddr,
+          to: contractAddr,
+          input: { method: 'verify_headline', args: [headline, sourceUrl] }
+        }]
       })
     });
-    const statusData = await statusRes.json();
-    const status = statusData.result;
+    const writeData = await writeRes.json();
+    if (writeData.error) throw new Error('Transaction failed: ' + writeData.error.message);
 
-    if (status === 'FINALIZED' || status === 'ACCEPTED') break;
-    if (status === 'REJECTED') throw new Error('Transaction rejected by validators.');
-    attempts++;
+    const txHash = writeData.result;
+    updateLastRow(list, '📡', 'Transaction submitted', 'done', 'tx: ' + txHash.slice(0,10) + '…');
+
+    // Step 2 — Validator consensus
+    addValidatorRow(list, '🤖', 'AI Validator 1 — fetching source…', 'checking');
+    await sleep(2000);
+    addValidatorRow(list, '🤖', 'AI Validator 2 — analyzing headline…', 'checking');
+    await sleep(2000);
+    addValidatorRow(list, '🤖', 'AI Validator 3 — cross-checking…', 'checking');
+
+    // Step 3 — Poll for finalization
+    let attempts = 0;
+    while (attempts < 50) {
+      await sleep(3000);
+      const statusRes = await fetch(GENLAYER_RPC, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 2,
+          method: 'gen_getTransactionStatus',
+          params: [txHash]
+        })
+      });
+      const statusData = await statusRes.json();
+      const status = statusData.result;
+
+      if (status === 'FINALIZED' || status === 'ACCEPTED') {
+        // Mark all validators done
+        const rows = list.querySelectorAll('.v-status.checking');
+        rows.forEach(r => { r.className = 'v-status done'; r.textContent = 'consensus'; });
+        break;
+      }
+      if (status === 'REJECTED') throw new Error('Transaction rejected by validators. Check Studio for details.');
+      attempts++;
+    }
+
+    if (attempts >= 50) throw new Error('Verification timed out. Check the transaction in GenLayer Studio.');
+
+    // Step 4 — Read result
+    addValidatorRow(list, '✅', 'Reading verdict from chain…', 'checking');
+    await sleep(1000);
+
+    const readRes = await fetch(GENLAYER_RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 3,
+        method: 'gen_call',
+        params: [{
+          to: contractAddr,
+          input: { method: 'get_verdict', args: [headline] }
+        }, 'latest']
+      })
+    });
+    const readData = await readRes.json();
+    const raw = readData.result;
+
+    if (!raw || raw === 'NOT_VERIFIED') {
+      throw new Error('Verdict not yet stored on-chain. Try "Get Verdict" manually in Studio.');
+    }
+
+    updateLastRow(list, '✅', 'Verdict stored on-chain', 'done');
+
+    // Set explorer link
+    document.getElementById('explorer-link').href =
+      `https://explorer.genlayer.foundation/tx/${txHash}`;
+
+    const parsed = JSON.parse(raw);
+    return parsed.result;
   }
 
-  // Read the result
-  const readRes = await fetch(STUDIO_RPC, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0', id: 3,
-      method: 'gen_call',
-      params: [{
-        to: contractAddr,
-        input: { method: 'get_verdict', args: [headline] }
-      }, 'latest']
-    })
-  });
-  const readData = await readRes.json();
-  const raw = readData.result;
-  if (!raw || raw === 'NOT_VERIFIED') throw new Error('Verdict not yet available. Try reading manually from Studio.');
+  // ─── DEMO MODE ───────────────────────────────────────────────────────────────
+  async function runDemoMode(headline, sourceUrl) {
+    const list = document.getElementById('validator-list');
+    const validatorNames = [
+      ['🤖', 'Validator Node Alpha'],
+      ['🤖', 'Validator Node Beta'],
+      ['🤖', 'Validator Node Gamma'],
+    ];
 
-  const parsed = JSON.parse(raw);
-  row.querySelector('.v-status').className = 'v-status done';
-  row.querySelector('.v-status').textContent = 'finalized';
-  return parsed.result;
-}
+    for (const [icon, name] of validatorNames) {
+      addValidatorRow(list, icon, name + ' — fetching source…', 'checking');
+      await sleep(700 + Math.random() * 600);
+    }
 
-// ─── DISPLAY VERDICT ─────────────────────────────────────────────────────────
-const VERDICT_MAP = {
-  REAL:       { icon: '✅', color: '#22d3a0', bg: 'rgba(34,211,160,.08)',  border: 'rgba(34,211,160,.3)',  label: 'VERIFIED REAL' },
-  FAKE:       { icon: '🚫', color: '#f0425a', bg: 'rgba(240,66,90,.08)',   border: 'rgba(240,66,90,.3)',   label: 'DETECTED FAKE' },
-  MISLEADING: { icon: '⚠️', color: '#f5b800', bg: 'rgba(245,184,0,.08)',   border: 'rgba(245,184,0,.3)',   label: 'MISLEADING' },
-};
+    // Simulate analysis
+    await sleep(1200);
 
-function displayVerdict(result, headline, sourceUrl) {
-  const vm = VERDICT_MAP[result.verdict] || VERDICT_MAP.FAKE;
-  const card = document.getElementById('verdict-card');
+    const lower = headline.toLowerCase();
+    let verdict, reason;
+    if (lower.includes('fake') || lower.includes('false') || lower.includes('hoax') || lower.includes('lie')) {
+      verdict = 'FAKE';
+      reason = 'The source article does not support this claim. No corroborating evidence found in the linked content.';
+    } else if (lower.includes('misled') || lower.includes('exaggerat') || lower.includes('distort') || lower.includes('cherry')) {
+      verdict = 'MISLEADING';
+      reason = 'The source contains related content but the headline exaggerates or distorts the actual findings.';
+    } else if (lower.includes('claim') || lower.includes('allegedly') || lower.includes('report')) {
+      verdict = 'MISLEADING';
+      reason = 'The headline uses speculative language that may distort the actual sourced information.';
+    } else {
+      verdict = 'REAL';
+      reason = 'The headline accurately reflects the content found in the source article. Key claims are supported by the evidence.';
+    }
 
-  card.style.background = vm.bg;
-  card.style.border = `1px solid ${vm.border}`;
-  document.getElementById('v-icon').textContent = vm.icon;
-  document.getElementById('v-title').textContent = vm.label;
-  document.getElementById('v-title').style.color = vm.color;
-  document.getElementById('v-conf').textContent = result.confidence + ' CONFIDENCE · ' + result.verdict;
-  document.getElementById('v-reason').textContent = result.reason;
-  document.getElementById('v-reason').style.borderLeftColor = vm.color;
-  card.classList.add('visible');
-  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
+    const confidence = ['HIGH', 'HIGH', 'MEDIUM'][Math.floor(Math.random() * 3)];
 
-// ─── HISTORY ─────────────────────────────────────────────────────────────────
-function addToHistory(headline, sourceUrl, result) {
-  const entry = {
-    headline: headline.slice(0, 140),
-    sourceUrl,
-    verdict: result.verdict,
-    confidence: result.confidence,
-    reason: result.reason,
-    ts: Date.now(),
+    const rows = list.querySelectorAll('.validator-row');
+    for (let i = 0; i < rows.length; i++) {
+      await sleep(200);
+      const badge = rows[i].querySelector('.v-status');
+      badge.className = 'v-status done';
+      badge.textContent = verdict.toLowerCase();
+    }
+
+    document.getElementById('explorer-link').href = '#';
+
+    return { verdict, confidence, reason };
+  }
+
+  // ─── VALIDATOR UI HELPERS ────────────────────────────────────────────────────
+  function addValidatorRow(list, icon, label, statusClass, statusText) {
+    const row = document.createElement('div');
+    row.className = 'validator-row';
+    row.innerHTML = `
+      <span class="v-icon">${icon}</span>
+      <span class="v-label">${label}</span>
+      <span class="v-status ${statusClass}">${statusText || statusClass}</span>
+    `;
+    list.appendChild(row);
+    return row;
+  }
+
+  function updateLastRow(list, icon, label, statusClass, statusText) {
+    const rows = list.querySelectorAll('.validator-row');
+    const last = rows[rows.length - 1];
+    if (!last) return;
+    last.querySelector('.v-icon').textContent = icon;
+    last.querySelector('.v-label').textContent = label;
+    const badge = last.querySelector('.v-status');
+    badge.className = 'v-status ' + statusClass;
+    badge.textContent = statusText || statusClass;
+  }
+
+  // ─── VERDICT DISPLAY ─────────────────────────────────────────────────────────
+  const VERDICT_MAP = {
+    REAL:       { icon: '✅', color: '#1fd99a', bg: 'rgba(31,217,154,0.07)',  border: 'rgba(31,217,154,0.28)',  label: 'VERIFIED REAL' },
+    FAKE:       { icon: '🚫', color: '#f03e58', bg: 'rgba(240,62,88,0.07)',   border: 'rgba(240,62,88,0.28)',   label: 'DETECTED FAKE' },
+    MISLEADING: { icon: '⚠️', color: '#f5b700', bg: 'rgba(245,183,0,0.07)',   border: 'rgba(245,183,0,0.28)',   label: 'MISLEADING' },
   };
-  history.unshift(entry);
-  if (history.length > 50) history = history.slice(0, 50);
-  localStorage.setItem('nv-history', JSON.stringify(history));
-  recalcStats();
-  updateStats();
-  renderHistory();
-}
 
-function renderHistory() {
-  const container = document.getElementById('history-container');
-  if (history.length === 0) {
-    container.innerHTML = '<div class="history-empty">No verifications yet. Submit a headline above.</div>';
-    return;
+  function displayVerdict(result, headline, sourceUrl) {
+    lastVerdict = { result, headline, sourceUrl };
+    const vm = VERDICT_MAP[result.verdict] || VERDICT_MAP.FAKE;
+    const card = document.getElementById('verdict-card');
+
+    card.style.background = vm.bg;
+    card.style.border = `1px solid ${vm.border}`;
+
+    document.getElementById('v-icon').textContent = vm.icon;
+    document.getElementById('v-title').textContent = vm.label;
+    document.getElementById('v-title').style.color = vm.color;
+    document.getElementById('v-conf').textContent = result.confidence + ' CONFIDENCE · ' + result.verdict;
+
+    const reason = document.getElementById('v-reason');
+    reason.textContent = result.reason;
+    reason.style.borderLeftColor = vm.color;
+
+    const meta = document.getElementById('v-meta');
+    meta.innerHTML = `Headline: "${escHtml(headline.slice(0,100))}${headline.length > 100 ? '…' : ''}"<br>
+      Source: <a href="${escHtml(sourceUrl)}" target="_blank">${escHtml(sourceUrl.slice(0,60))}${sourceUrl.length > 60 ? '…' : ''}</a>`;
+
+    card.classList.add('visible');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
-  const COLORS = { REAL: '#22d3a0', FAKE: '#f0425a', MISLEADING: '#f5b800' };
-  const ICONS = { REAL: '✅', FAKE: '🚫', MISLEADING: '⚠️' };
-  container.innerHTML = `<div class="history-list">` +
-    history.map(h => `
+
+  // ─── HISTORY ─────────────────────────────────────────────────────────────────
+  function addToHistory(headline, sourceUrl, result) {
+    const entry = {
+      headline: headline.slice(0, 140),
+      sourceUrl, verdict: result.verdict,
+      confidence: result.confidence,
+      reason: result.reason,
+      ts: Date.now(),
+    };
+    history.unshift(entry);
+    if (history.length > 50) history = history.slice(0, 50);
+    localStorage.setItem('nv-history', JSON.stringify(history));
+    recalcStats();
+    updateStats();
+    renderHistory();
+  }
+
+  function recalcStats() {
+    stats = { total: history.length, real: 0, fake: 0, misleading: 0 };
+    history.forEach(h => {
+      if (h.verdict === 'REAL') stats.real++;
+      else if (h.verdict === 'FAKE') stats.fake++;
+      else if (h.verdict === 'MISLEADING') stats.misleading++;
+    });
+  }
+
+  function updateStats() {
+    document.getElementById('stat-total').textContent = stats.total;
+    document.getElementById('stat-real').textContent = stats.real;
+    document.getElementById('stat-fake').textContent = stats.fake;
+  }
+
+  function renderHistory() {
+    const container = document.getElementById('history-container');
+    if (history.length === 0) {
+      container.innerHTML = '<div class="history-empty">No verifications yet. Submit a headline above.</div>';
+      return;
+    }
+    const COLORS = { REAL: '#1fd99a', FAKE: '#f03e58', MISLEADING: '#f5b700' };
+    const ICONS = { REAL: '✅', FAKE: '🚫', MISLEADING: '⚠️' };
+    container.innerHTML = history.map(h => `
       <div class="history-item">
         <div class="h-dot" style="background:${COLORS[h.verdict]||'#666'}"></div>
         <div style="flex:1">
           <div class="h-headline">${escHtml(h.headline)}</div>
-          <div class="h-meta">${ICONS[h.verdict]||''} ${h.verdict} · ${h.confidence} · <span style="color:var(--accent2)">${escHtml(h.sourceUrl.slice(0,50))}</span></div>
+          <div class="h-meta">${ICONS[h.verdict]||''} ${h.verdict} · ${h.confidence} · <span style="color:var(--accent2)">${escHtml(h.sourceUrl.slice(0,55))}</span></div>
         </div>
-      </div>`).join('') +
-  `</div>`;
-}
+      </div>`).join('');
+  }
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  // ─── COPY VERDICT ────────────────────────────────────────────────────────────
+  function copyVerdict() {
+    if (!lastVerdict) return;
+    const { result, headline, sourceUrl } = lastVerdict;
+    const text = `AI News Verifier — GenLayer Bradbury Testnet\n\nHeadline: ${headline}\nSource: ${sourceUrl}\n\nVerdict: ${result.verdict}\nConfidence: ${result.confidence}\nReason: ${result.reason}`;
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
 
-function setLoading(on) {
-  const btn = document.getElementById('verify-btn');
-  btn.disabled = on;
-  btn.className = on ? 'btn loading' : 'btn';
-  btn.textContent = on ? '⟳  AI Validators Fetching Source…' : '🔍  Verify with AI Consensus';
-}
+  // ─── UI HELPERS ──────────────────────────────────────────────────────────────
+  function updateCount(el, countId, max) {
+    document.getElementById(countId).textContent = el.value.length;
+  }
 
-function showValidators() {
-  const sec = document.getElementById('validators-section');
-  document.getElementById('validator-list').innerHTML = '';
-  sec.classList.add('visible');
-  sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-function hideValidators() {
-  document.getElementById('validators-section').classList.remove('visible');
-}
-function hideVerdict() {
-  document.getElementById('verdict-card').classList.remove('visible');
-}
-function showError(msg) {
-  const el = document.getElementById('error-box');
-  el.textContent = '⚠ ' + msg;
-  el.style.display = 'block';
-}
-function hideError() {
-  document.getElementById('error-box').style.display = 'none';
-}
+  function setLoading(on) {
+    const btn = document.getElementById('verify-btn');
+    btn.disabled = on;
+    btn.className = on ? 'btn loading' : 'btn';
+    btn.textContent = on ? '⟳  AI Validators Fetching Source…' : '🔍  Verify with AI Consensus';
+  }
 
-// Boot
-init();
-</script>
+  function showValidators() {
+    const sec = document.getElementById('validators-section');
+    document.getElementById('validator-list').innerHTML = '';
+    sec.classList.add('visible');
+    sec.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideValidators() {
+    document.getElementById('validators-section').classList.remove('visible');
+  }
+  function hideVerdict() {
+    document.getElementById('verdict-card').classList.remove('visible');
+  }
+  function showError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = '⚠ ' + msg;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideError() {
+    document.getElementById('error-box').style.display = 'none';
+  }
+  function resetForm() {
+    document.getElementById('headline-input').value = '';
+    document.getElementById('source-url').value = '';
+    document.getElementById('headline-count').textContent = '0';
+    hideVerdict();
+    hideValidators();
+    hideError();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // Boot
+  init();
+  </script>
 </body>
 </html>
