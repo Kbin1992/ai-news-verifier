@@ -1,96 +1,188 @@
-# { "Depends": "py-genlayer:test" }
-from genlayer import *
+# { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
+# ─────────────────────────────────────────────────────────────
+#  AI NEWS VERIFIER — GenLayer Intelligent Contract
+#  Tested against: studio.genlayer.com (Bradbury Testnet)
+#
+#  API used (from official docs):
+#    gl.nondet.web.get(url).body.decode("utf-8")  ← web fetch
+#    gl.nondet.exec_prompt(prompt)                ← LLM call
+#    gl.vm.run_nondet_unsafe(leader, validator)   ← consensus
+#    gl.vm.Return                                 ← result type check
+#
+#  Verdict labels: REAL | FAKE | MISLEADING | UNVERIFIABLE
+# ─────────────────────────────────────────────────────────────
+
 import json
-import typing
+from genlayer import *
 
 
 class NewsVerifier(gl.Contract):
-    """
-    AI News Verifier - GenLayer Intelligent Contract
-    Verifies news headlines against their source URLs using AI + live web fetching.
-    Verdicts are stored permanently on-chain.
-    """
 
-    verifications: TreeMap[str, str]  # stores headline -> result JSON
+    # ── on-chain storage ──────────────────────────────────────
+    # Plain dict is supported for string→string maps in GenVM
+    verdicts:  dict   # headline → verdict string
+    sources:   dict   # headline → source url
+    reasons:   dict   # headline → one-sentence reason
 
     def __init__(self):
-        self.verifications = {}
+        self.verdicts = {}
+        self.sources  = {}
+        self.reasons  = {}
 
+    # ─────────────────────────────────────────────────────────
+    #  WRITE — submit a headline + source URL for verification
+    # ─────────────────────────────────────────────────────────
     @gl.public.write
     def verify_headline(self, headline: str, source_url: str) -> None:
         """
-        Submit a news headline and source URL for verification.
-        The AI fetches the actual page and determines if the headline is
-        REAL, FAKE, or MISLEADING, then stores the verdict on-chain.
+        Fetches the source page, calls an LLM to classify the headline,
+        and stores the consensus verdict on-chain.
+
+        Validators independently repeat the work and compare only the
+        'verdict' field (LLM reasoning text will differ — that's fine).
         """
 
-        def check_headline() -> str:
-            # Fetch the live web page content
-            web_data = gl.get_webpage(source_url, mode="text")
-
-            prompt = f"""You are an expert news fact-checker and investigative journalist.
-
-HEADLINE TO VERIFY: "{headline}"
-
-SOURCE PAGE CONTENT (first 4000 chars):
-{web_data[:4000]}
-
-SOURCE URL: {source_url}
-
-Carefully analyze whether the headline is:
-- REAL: The headline accurately reflects what the source article actually says
-- FAKE: The headline is not supported by the source, contradicts it, or the source doesn't mention this at all
-- MISLEADING: The headline is technically connected to the source but exaggerates, distorts, cherry-picks, or takes content out of context
-
-Return ONLY valid JSON in this exact format, nothing else:
-{{"verdict": "REAL", "confidence": "HIGH", "reason": "Brief one-sentence explanation of your finding"}}
-
-Possible verdict values: REAL, FAKE, MISLEADING
-Possible confidence values: HIGH, MEDIUM, LOW"""
-
-            result = gl.exec_prompt(prompt)
-
-            # Normalize and re-serialize so validators can compare consistently
+        # ── LEADER: runs on the proposing validator ───────────
+        def leader_fn() -> str:
+            # 1. Fetch live page as plain text
             try:
-                parsed = json.loads(result.strip())
-                return json.dumps({
-                    "verdict": parsed.get("verdict", "FAKE").upper(),
-                    "confidence": parsed.get("confidence", "LOW").upper(),
-                    "reason": parsed.get("reason", "Could not determine"),
-                }, sort_keys=True)
+                page_bytes = gl.nondet.web.get(source_url).body
+                page_text  = page_bytes.decode("utf-8", errors="replace")
             except Exception:
+                # If page is unreachable, return UNVERIFIABLE
                 return json.dumps({
-                    "verdict": "FAKE",
-                    "confidence": "LOW",
-                    "reason": "Could not parse source content"
+                    "verdict": "UNVERIFIABLE",
+                    "reason":  "Could not fetch source URL."
                 }, sort_keys=True)
 
-        # Use comparative equivalence — validators must agree on the verdict
-        result_json = gl.eq_principle_prompt_comparative(
-            check_headline,
-            principle="The verdict field (REAL, FAKE, or MISLEADING) must match exactly. Minor differences in the reason wording are acceptable."
-        )
+            snippet = page_text[:3000]   # keep prompt concise
 
-        # Store on-chain: key is headline truncated to 120 chars
-        key = headline[:120]
-        self.verifications[key] = json.dumps({
-            "headline": headline,
-            "source_url": source_url,
-            "result": json.loads(result_json),
-        }, sort_keys=True)
+            if not snippet.strip():
+                return json.dumps({
+                    "verdict": "UNVERIFIABLE",
+                    "reason":  "Source page returned empty content."
+                }, sort_keys=True)
+
+            # 2. Ask LLM to classify the headline
+            prompt = (
+                "You are an expert fact-checker.\n\n"
+                "HEADLINE: \"" + headline + "\"\n\n"
+                "SOURCE PAGE (first 3000 chars):\n"
+                + snippet + "\n\n"
+                "Based ONLY on the source page above, classify the headline as:\n"
+                "  REAL        — headline accurately reflects the source\n"
+                "  FAKE        — headline contradicts or is absent from the source\n"
+                "  MISLEADING  — source is related but headline exaggerates or distorts it\n"
+                "  UNVERIFIABLE— source has no relevant content to judge the headline\n\n"
+                "Return ONLY valid JSON, nothing else:\n"
+                "{\"verdict\": \"REAL\", \"reason\": \"one short sentence\"}"
+            )
+
+            raw = gl.nondet.exec_prompt(prompt)
+
+            # 3. Parse and normalise
+            try:
+                # exec_prompt returns a string; strip markdown fences if any
+                clean = raw.strip().strip("```json").strip("```").strip()
+                data  = json.loads(clean)
+
+                verdict = str(data.get("verdict", "UNVERIFIABLE")).upper().strip()
+                reason  = str(data.get("reason",  "No reason provided."))
+
+                allowed = {"REAL", "FAKE", "MISLEADING", "UNVERIFIABLE"}
+                if verdict not in allowed:
+                    verdict = "UNVERIFIABLE"
+
+                return json.dumps({
+                    "verdict": verdict,
+                    "reason":  reason
+                }, sort_keys=True)
+
+            except Exception:
+                # Fallback: scan raw string for a verdict keyword
+                upper = raw.upper()
+                verdict = "UNVERIFIABLE"
+                for label in ("REAL", "FAKE", "MISLEADING"):
+                    if label in upper:
+                        verdict = label
+                        break
+                return json.dumps({
+                    "verdict": verdict,
+                    "reason":  "Parsed from raw LLM output."
+                }, sort_keys=True)
+
+        # ── VALIDATOR: re-runs leader independently ───────────
+        # Only the 'verdict' field must agree — reasoning text will differ
+        # across different LLMs, so we never compare it.
+        def validator_fn(leader_result) -> bool:
+            # Reject if leader itself errored
+            if not isinstance(leader_result, gl.vm.Return):
+                return False
+
+            # Re-run leader logic on this validator's node
+            try:
+                validator_raw = leader_fn()
+                leader_raw    = leader_result.calldata
+
+                leader_verdict    = json.loads(leader_raw).get("verdict", "")
+                validator_verdict = json.loads(validator_raw).get("verdict", "")
+
+                # Verdicts must match exactly; reasoning may differ
+                return leader_verdict == validator_verdict
+
+            except Exception:
+                return False
+
+        # ── CONSENSUS: run across all validator nodes ─────────
+        result_json = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+
+        # ── STORE on-chain ─────────────────────────────────────
+        try:
+            parsed  = json.loads(result_json)
+            verdict = parsed.get("verdict", "UNVERIFIABLE")
+            reason  = parsed.get("reason",  "")
+        except Exception:
+            verdict = "UNVERIFIABLE"
+            reason  = "Could not parse result."
+
+        key = headline[:200]        # cap key length
+        self.verdicts[key] = verdict
+        self.sources[key]  = source_url
+        self.reasons[key]  = reason
+
+    # ─────────────────────────────────────────────────────────
+    #  VIEWS — read stored data (no gas cost)
+    # ─────────────────────────────────────────────────────────
 
     @gl.public.view
     def get_verdict(self, headline: str) -> str:
-        """Returns the stored verdict JSON for a given headline, or 'NOT_VERIFIED'."""
-        key = headline[:120]
-        return self.verifications.get(key, "NOT_VERIFIED")
+        """Returns verdict for a headline, or NOT_FOUND."""
+        return self.verdicts.get(headline[:200], "NOT_FOUND")
 
     @gl.public.view
-    def get_all_verifications(self) -> dict:
-        """Returns all stored verifications as a dict."""
-        return dict(self.verifications)
+    def get_reason(self, headline: str) -> str:
+        """Returns the stored reason for a verdict."""
+        return self.reasons.get(headline[:200], "NOT_FOUND")
 
     @gl.public.view
-    def get_verification_count(self) -> int:
-        """Returns the total number of verifications stored on-chain."""
-        return len(self.verifications)
+    def get_full_result(self, headline: str) -> str:
+        """Returns verdict + reason + source as JSON string."""
+        key = headline[:200]
+        if key not in self.verdicts:
+            return "{\"error\": \"NOT_FOUND\"}"
+        return json.dumps({
+            "verdict":    self.verdicts[key],
+            "reason":     self.reasons.get(key, ""),
+            "source_url": self.sources.get(key, ""),
+            "headline":   headline
+        }, sort_keys=True)
+
+    @gl.public.view
+    def get_all_headlines(self) -> list:
+        """Returns list of all verified headlines."""
+        return list(self.verdicts.keys())
+
+    @gl.public.view
+    def total_verified(self) -> int:
+        """Returns count of all verified headlines."""
+        return len(self.verdicts)
