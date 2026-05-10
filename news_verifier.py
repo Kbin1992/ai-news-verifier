@@ -1,188 +1,108 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
-# ─────────────────────────────────────────────────────────────
-#  AI NEWS VERIFIER — GenLayer Intelligent Contract
-#  Tested against: studio.genlayer.com (Bradbury Testnet)
-#
-#  API used (from official docs):
-#    gl.nondet.web.get(url).body.decode("utf-8")  ← web fetch
-#    gl.nondet.exec_prompt(prompt)                ← LLM call
-#    gl.vm.run_nondet_unsafe(leader, validator)   ← consensus
-#    gl.vm.Return                                 ← result type check
-#
-#  Verdict labels: REAL | FAKE | MISLEADING | UNVERIFIABLE
-# ─────────────────────────────────────────────────────────────
 
 import json
+import typing
 from genlayer import *
 
 
 class NewsVerifier(gl.Contract):
 
-    # ── on-chain storage ──────────────────────────────────────
-    # Plain dict is supported for string→string maps in GenVM
-    verdicts:  dict   # headline → verdict string
-    sources:   dict   # headline → source url
-    reasons:   dict   # headline → one-sentence reason
+    # TreeMap is the correct dict replacement in GenVM (NOT plain dict)
+    # Do NOT assign these in __init__ -- GenVM initialises them automatically
+    verdicts: TreeMap[str, str]
+    sources:  TreeMap[str, str]
+    reasons:  TreeMap[str, str]
 
     def __init__(self):
-        self.verdicts = {}
-        self.sources  = {}
-        self.reasons  = {}
+        pass
 
-    # ─────────────────────────────────────────────────────────
-    #  WRITE — submit a headline + source URL for verification
-    # ─────────────────────────────────────────────────────────
     @gl.public.write
-    def verify_headline(self, headline: str, source_url: str) -> None:
-        """
-        Fetches the source page, calls an LLM to classify the headline,
-        and stores the consensus verdict on-chain.
+    def verify_headline(self, headline: str, source_url: str) -> typing.Any:
 
-        Validators independently repeat the work and compare only the
-        'verdict' field (LLM reasoning text will differ — that's fine).
-        """
-
-        # ── LEADER: runs on the proposing validator ───────────
         def leader_fn() -> str:
-            # 1. Fetch live page as plain text
-            try:
-                page_bytes = gl.nondet.web.get(source_url).body
-                page_text  = page_bytes.decode("utf-8", errors="replace")
-            except Exception:
-                # If page is unreachable, return UNVERIFIABLE
-                return json.dumps({
-                    "verdict": "UNVERIFIABLE",
-                    "reason":  "Could not fetch source URL."
-                }, sort_keys=True)
+            # Fetch the live source page
+            page_text = gl.nondet.web.get(source_url).body.decode("utf-8", errors="replace")
+            snippet = page_text[:3000]
 
-            snippet = page_text[:3000]   # keep prompt concise
-
-            if not snippet.strip():
-                return json.dumps({
-                    "verdict": "UNVERIFIABLE",
-                    "reason":  "Source page returned empty content."
-                }, sort_keys=True)
-
-            # 2. Ask LLM to classify the headline
             prompt = (
                 "You are an expert fact-checker.\n\n"
                 "HEADLINE: \"" + headline + "\"\n\n"
-                "SOURCE PAGE (first 3000 chars):\n"
-                + snippet + "\n\n"
-                "Based ONLY on the source page above, classify the headline as:\n"
-                "  REAL        — headline accurately reflects the source\n"
-                "  FAKE        — headline contradicts or is absent from the source\n"
-                "  MISLEADING  — source is related but headline exaggerates or distorts it\n"
-                "  UNVERIFIABLE— source has no relevant content to judge the headline\n\n"
-                "Return ONLY valid JSON, nothing else:\n"
-                "{\"verdict\": \"REAL\", \"reason\": \"one short sentence\"}"
+                "WEBPAGE (first 3000 chars):\n" + snippet + "\n\n"
+                "Classify the headline as exactly ONE of:\n"
+                "  REAL        - headline accurately reflects the source\n"
+                "  FAKE        - headline contradicts or is not in the source\n"
+                "  MISLEADING  - source is related but headline exaggerates it\n"
+                "  UNVERIFIABLE- source has no relevant content\n\n"
+                "Return ONLY this JSON and nothing else:\n"
+                "{\"verdict\": \"REAL\", \"reason\": \"one sentence explanation\"}"
             )
 
             raw = gl.nondet.exec_prompt(prompt)
+            cleaned = raw.strip().strip("```json").strip("```").strip()
 
-            # 3. Parse and normalise
             try:
-                # exec_prompt returns a string; strip markdown fences if any
-                clean = raw.strip().strip("```json").strip("```").strip()
-                data  = json.loads(clean)
-
+                data = json.loads(cleaned)
                 verdict = str(data.get("verdict", "UNVERIFIABLE")).upper().strip()
-                reason  = str(data.get("reason",  "No reason provided."))
-
-                allowed = {"REAL", "FAKE", "MISLEADING", "UNVERIFIABLE"}
-                if verdict not in allowed:
+                reason = str(data.get("reason", "No reason provided."))
+                if verdict not in {"REAL", "FAKE", "MISLEADING", "UNVERIFIABLE"}:
                     verdict = "UNVERIFIABLE"
-
-                return json.dumps({
-                    "verdict": verdict,
-                    "reason":  reason
-                }, sort_keys=True)
-
             except Exception:
-                # Fallback: scan raw string for a verdict keyword
-                upper = raw.upper()
                 verdict = "UNVERIFIABLE"
-                for label in ("REAL", "FAKE", "MISLEADING"):
-                    if label in upper:
-                        verdict = label
-                        break
-                return json.dumps({
-                    "verdict": verdict,
-                    "reason":  "Parsed from raw LLM output."
-                }, sort_keys=True)
+                reason = "Could not parse LLM response."
 
-        # ── VALIDATOR: re-runs leader independently ───────────
-        # Only the 'verdict' field must agree — reasoning text will differ
-        # across different LLMs, so we never compare it.
+            return json.dumps({"verdict": verdict, "reason": reason}, sort_keys=True)
+
         def validator_fn(leader_result) -> bool:
-            # Reject if leader itself errored
             if not isinstance(leader_result, gl.vm.Return):
                 return False
-
-            # Re-run leader logic on this validator's node
             try:
                 validator_raw = leader_fn()
-                leader_raw    = leader_result.calldata
-
-                leader_verdict    = json.loads(leader_raw).get("verdict", "")
+                leader_verdict = json.loads(leader_result.calldata).get("verdict", "")
                 validator_verdict = json.loads(validator_raw).get("verdict", "")
-
-                # Verdicts must match exactly; reasoning may differ
+                # Only the verdict label must match -- reason text may differ across LLMs
                 return leader_verdict == validator_verdict
-
             except Exception:
                 return False
 
-        # ── CONSENSUS: run across all validator nodes ─────────
         result_json = gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
 
-        # ── STORE on-chain ─────────────────────────────────────
         try:
-            parsed  = json.loads(result_json)
+            parsed = json.loads(result_json)
             verdict = parsed.get("verdict", "UNVERIFIABLE")
-            reason  = parsed.get("reason",  "")
+            reason = parsed.get("reason", "")
         except Exception:
             verdict = "UNVERIFIABLE"
-            reason  = "Could not parse result."
+            reason = "Parse error."
 
-        key = headline[:200]        # cap key length
+        key = headline[:200]
         self.verdicts[key] = verdict
-        self.sources[key]  = source_url
+        self.sources[key]  = source_url[:200]
         self.reasons[key]  = reason
-
-    # ─────────────────────────────────────────────────────────
-    #  VIEWS — read stored data (no gas cost)
-    # ─────────────────────────────────────────────────────────
 
     @gl.public.view
     def get_verdict(self, headline: str) -> str:
-        """Returns verdict for a headline, or NOT_FOUND."""
         return self.verdicts.get(headline[:200], "NOT_FOUND")
 
     @gl.public.view
-    def get_reason(self, headline: str) -> str:
-        """Returns the stored reason for a verdict."""
-        return self.reasons.get(headline[:200], "NOT_FOUND")
-
-    @gl.public.view
     def get_full_result(self, headline: str) -> str:
-        """Returns verdict + reason + source as JSON string."""
         key = headline[:200]
-        if key not in self.verdicts:
-            return "{\"error\": \"NOT_FOUND\"}"
+        verdict = self.verdicts.get(key, "NOT_FOUND")
+        if verdict == "NOT_FOUND":
+            return json.dumps({"error": "NOT_FOUND"})
         return json.dumps({
-            "verdict":    self.verdicts[key],
-            "reason":     self.reasons.get(key, ""),
-            "source_url": self.sources.get(key, ""),
-            "headline":   headline
+            "headline": headline,
+            "verdict":  verdict,
+            "reason":   self.reasons.get(key, ""),
+            "source":   self.sources.get(key, ""),
         }, sort_keys=True)
 
     @gl.public.view
-    def get_all_headlines(self) -> list:
-        """Returns list of all verified headlines."""
-        return list(self.verdicts.keys())
+    def get_all_headlines(self) -> str:
+        return json.dumps(list(self.verdicts.keys()))
 
     @gl.public.view
     def total_verified(self) -> int:
-        """Returns count of all verified headlines."""
-        return len(self.verdicts)
+        count = 0
+        for _ in self.verdicts.keys():
+            count += 1
+        return count
